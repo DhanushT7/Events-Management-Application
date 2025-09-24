@@ -1,5 +1,6 @@
 import event from "../../../shared/models/eventModel.js";
 import ConvenorCommittee from "../../../shared/models/convenorCommitteeModel.js";
+import NoteOrder from "../../../shared/models/noteOrderModel.js";
 import { generateEventBrochure } from "../../../shared/services/advancedBrochureGenerator.js";
 
 // Create a new training programme
@@ -39,6 +40,32 @@ export const createProgramme = async (req, res) => {
       }
     };
 
+    const budgetBreakdown = safeJSONParse(req.body.budgetBreakdown, {});
+
+    // Server-side calculation of income and totals (to avoid zeroes)
+    const calculatedIncome = (budgetBreakdown.income || []).map((inc) => {
+      const participants = Number(inc.expectedParticipants || 0);
+      const perAmount = Number(inc.perParticipantAmount || 0);
+      const gst = Number(inc.gstPercentage || 0);
+      const income = participants * perAmount * (1 - gst / 100);
+      return { ...inc, income };
+    });
+
+    const totalIncome = calculatedIncome.reduce((s, i) => s + Number(i.income || 0), 0);
+    const totalExpenditure = (budgetBreakdown.expenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
+    const universityOverhead = totalIncome * 0.3;
+
+    // Create NoteOrder document for initial budget
+    const noteOrderData = new NoteOrder({
+      income: calculatedIncome,
+      expenses: budgetBreakdown.expenses || [],
+      totalIncome,
+      totalExpenditure,
+      universityOverhead,
+    });
+
+    const savedNoteOrder = await noteOrderData.save();
+
     const programme = new event({
       title: req.body.title,
       startDate: new Date(req.body.startDate),
@@ -54,7 +81,8 @@ export const createProgramme = async (req, res) => {
       targetAudience: safeJSONParse(req.body.targetAudience, []),
       resourcePersons: safeJSONParse(req.body.resourcePersons, []),
       approvers: safeJSONParse(req.body.approvers, []),
-      budgetBreakdown: safeJSONParse(req.body.budgetBreakdown, {}),
+      budgetBreakdown: { ...budgetBreakdown, income: calculatedIncome, totalIncome, totalExpenditure, universityOverhead },
+      noteOrder: savedNoteOrder._id, // Reference to NoteOrder document
       // Handle organizing departments
       organizingDepartments: safeJSONParse(req.body.organizingDepartments, {
         primary: "DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING (DCSE)",
@@ -191,7 +219,8 @@ export const getProgrammeById = async (req, res) => {
       .populate({
         path: 'organizingCommittee.member',
         model: 'ConvenorCommittee'
-      });
+      })
+      .populate('noteOrder'); // Populate the noteOrder reference
     
     if (!programme) {
       return res.status(404).json({ message: "Programme not found" });
@@ -208,7 +237,10 @@ export const getProgrammeById = async (req, res) => {
 
     // ✅ CRITICAL FIX: Proper expense synchronization for editing
     let programmeData = programme.toObject();
-    
+
+    // NoteOrder is now populated, so programmeData.noteOrder contains the NoteOrder object
+    // No migration needed since noteOrder is created separately during event creation
+
     // Determine which expenses to use for editing (priority: claim bill > budget breakdown)
     let expensesToUse = [];
     let sourceOfExpenses = 'none';

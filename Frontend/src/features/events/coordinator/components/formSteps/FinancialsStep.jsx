@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Grid,
   TextField,
@@ -22,6 +22,30 @@ import {
 
 const FinancialsStep = ({ formData, setFormData }) => {
   const theme = useTheme();
+
+  // Update income calculations when form data changes
+  useEffect(() => {
+    if (formData.budgetBreakdown?.income) {
+      const updatedIncome = formData.budgetBreakdown.income.map(item => ({
+        ...item,
+        income: Number(item.expectedParticipants || 0) * 
+                Number(item.perParticipantAmount || 0) * 
+                (1 - Number(item.gstPercentage || 0) / 100)
+      }));
+
+      setFormData(prev => ({
+        ...prev,
+        budgetBreakdown: {
+          ...prev.budgetBreakdown,
+          income: updatedIncome,
+          totalIncome: updatedIncome.reduce((sum, item) => sum + item.income, 0),
+          universityOverhead: updatedIncome.reduce((sum, item) => sum + item.income, 0) * 0.3
+        }
+      }));
+    }
+  }, [formData.budgetBreakdown?.income?.map(item => 
+    `${item.expectedParticipants}-${item.perParticipantAmount}-${item.gstPercentage}`
+  ).join('|')]);
 
   const handleNestedChange = (section, field, value, index = null) => {
     setFormData((prev) => {

@@ -432,6 +432,12 @@ const eventSchema = mongoose.Schema(
       },
     ],
 
+    // Note Order - Reference to separate NoteOrder document
+    noteOrder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "NoteOrder",
+    },
+
     budgetBreakdown: {
       income: [
         {

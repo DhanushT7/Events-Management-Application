@@ -232,8 +232,8 @@ const HODEventDashboard = () => {
   };
 
   const calculateTotalIncome = () => {
-    if (!event.budgetBreakdown?.income) return 0;
-    return event.budgetBreakdown.income.reduce((sum, item) => sum + (item.income || 0), 0);
+    if (!event.noteOrder?.income) return 0;
+    return event.noteOrder.income.reduce((sum, item) => sum + (item.income || 0), 0);
   };
 
   const calculateTotalExpenses = () => {
@@ -771,7 +771,7 @@ const HODEventDashboard = () => {
                         <Typography variant="subtitle1" sx={{ mb: 2, color: "green" }}>
                           Income Sources
                         </Typography>
-                        {event.budgetBreakdown?.income?.map((item, index) => (
+                        {event.noteOrder?.income?.map((item, index) => (
                           <Box key={index} display="flex" justifyContent="space-between" sx={{ mb: 1, p: 1, bgcolor: "grey.50", borderRadius: 1 }}>
                             <Box>
                               <Typography variant="body2" fontWeight="bold">{item.category}</Typography>

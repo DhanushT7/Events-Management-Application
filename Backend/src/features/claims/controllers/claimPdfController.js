@@ -62,7 +62,7 @@ const generateFundTransferRequest = (doc, programme, approvalDate) => {
     
     // Calculate registration income and amounts
 
-    const registrationIncome = programme.budgetBreakdown?.income?.find(inc => {
+    const registrationIncome = programme.noteOrder?.income?.find(inc => {
       const category = inc.category?.toLowerCase() || '';
       const isRegistration = category.includes('registration');
       const isFee = category.includes('fee');
@@ -75,15 +75,15 @@ const generateFundTransferRequest = (doc, programme, approvalDate) => {
     let totalRegistrationFee = 0;
     if (registrationIncome) {
       totalRegistrationFee = Number(registrationIncome.income) || 0;
-    } else if (programme.budgetBreakdown?.income?.length > 0) {
+    } else if (programme.noteOrder?.income?.length > 0) {
       // If no registration-specific income found, use the total of all income
-      totalRegistrationFee = programme.budgetBreakdown.income.reduce((total, inc) => {
+      totalRegistrationFee = programme.noteOrder.income.reduce((total, inc) => {
         return total + (Number(inc.income) || 0);
       }, 0);
 
     }
 
-    const universityOverhead = programme.budgetBreakdown?.universityOverhead || (totalRegistrationFee * 0.30);
+    const universityOverhead = programme.noteOrder?.universityOverhead || (totalRegistrationFee * 0.30);
 
     // Calculate amounts excluding GST and overhead
     const amountExcludingGSTAndOverhead = totalRegistrationFee  - universityOverhead;
@@ -289,7 +289,8 @@ export const generateClaimBillPDF = async (req, res) => {
       .populate('createdBy', 'name email department designation')
       .populate('reviewedBy', 'name email department designation')
       .populate('claimBill.expenses.reviewedBy', 'name email department designation')
-      .populate('claimBill.approvedBy', 'name email department designation');
+      .populate('claimBill.approvedBy', 'name email department designation')
+      .populate('noteOrder'); // Populate noteOrder for income calculations
         
     if (!programme || !programme.claimBill) {
       return res
@@ -939,7 +940,7 @@ export const generateClaimBillPDF = async (req, res) => {
 
     // Add fund transfer request page if event is approved and has registration income
 
-    const hasRegistrationIncome = programme.budgetBreakdown?.income?.some(inc => {
+    const hasRegistrationIncome = programme.noteOrder?.income?.some(inc => {
       const categoryLower = inc.category?.toLowerCase() || '';
       const hasRegistration = categoryLower.includes('registration');
       const hasFee = categoryLower.includes('fee');
@@ -973,7 +974,8 @@ export const generateClaimBillPDF = async (req, res) => {
 // New endpoint to generate only the fund transfer request PDF
 export const generateFundTransferRequestPDF = async (req, res) => {
   try {
-    const programme = await event.findById(req.params.id);
+    const programme = await event.findById(req.params.id)
+      .populate('noteOrder'); // Populate noteOrder for income calculations
     if (!programme) {
       return res.status(404).json({ message: "Programme not found" });
     }
@@ -996,7 +998,7 @@ export const generateFundTransferRequestPDF = async (req, res) => {
     }
 
     // Check if event has registration income
-    const hasRegistrationIncome = programme.budgetBreakdown?.income?.some(inc => 
+    const hasRegistrationIncome = programme.noteOrder?.income?.some(inc => 
       inc.category?.toLowerCase().includes('registration') || 
       inc.category?.toLowerCase().includes('fee')
     );

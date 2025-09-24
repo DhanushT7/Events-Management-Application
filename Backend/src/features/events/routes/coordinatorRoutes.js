@@ -72,6 +72,7 @@ import {
 // Import models
 import event from '../../../shared/models/eventModel.js';
 import multer from 'multer';
+import { migrateEmbeddedNoteOrder } from '../controllers/budgetSyncController.js';
 
 const storage = multer.memoryStorage();
 const upload = multer({ 
@@ -239,5 +240,8 @@ coordinatorRoutes.get('/claim-pdf/:id', async (req, res) => {
     }
   }
 });
+
+// Maintenance/Migration route (admin only)
+coordinatorRoutes.post('/maintenance/migrate-noteorder', authorizeRoles('admin'), migrateEmbeddedNoteOrder);
 
 export default coordinatorRoutes;
