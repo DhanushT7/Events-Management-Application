@@ -10,28 +10,14 @@ export const createProgramme = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Debug: Log the problematic field
-    console.log("🔍 Debugging registrationProcedure field:");
-    console.log("Type:", typeof req.body.registrationProcedure);
-    console.log("Value:", req.body.registrationProcedure);
-
     // Helper function to safely parse JSON or handle objects
     const safeJSONParse = (data, fallback = {}) => {
       try {
-        // If it's already an object, return it directly
-        if (typeof data === 'object' && data !== null) {
-          return data;
-        }
-        
-        // If it's a string, try to parse it
+        if (typeof data === 'object' && data !== null) return data;
         if (typeof data === 'string') {
-          if (!data || data === 'undefined' || data === 'null') {
-            return fallback;
-          }
+          if (!data || data === 'undefined' || data === 'null') return fallback;
           return JSON.parse(data);
         }
-        
-        // For any other type, return fallback
         return fallback;
       } catch (error) {
         console.error("❌ JSON Parse Error for:", typeof data === 'string' ? data.substring(0, 100) + "..." : data);
@@ -42,30 +28,7 @@ export const createProgramme = async (req, res) => {
 
     const budgetBreakdown = safeJSONParse(req.body.budgetBreakdown, {});
 
-    // Server-side calculation of income and totals (to avoid zeroes)
-    const calculatedIncome = (budgetBreakdown.income || []).map((inc) => {
-      const participants = Number(inc.expectedParticipants || 0);
-      const perAmount = Number(inc.perParticipantAmount || 0);
-      const gst = Number(inc.gstPercentage || 0);
-      const income = participants * perAmount * (1 - gst / 100);
-      return { ...inc, income };
-    });
-
-    const totalIncome = calculatedIncome.reduce((s, i) => s + Number(i.income || 0), 0);
-    const totalExpenditure = (budgetBreakdown.expenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
-    const universityOverhead = totalIncome * 0.3;
-
-    // Create NoteOrder document for initial budget
-    const noteOrderData = new NoteOrder({
-      income: calculatedIncome,
-      expenses: budgetBreakdown.expenses || [],
-      totalIncome,
-      totalExpenditure,
-      universityOverhead,
-    });
-
-    const savedNoteOrder = await noteOrderData.save();
-
+    // 1) Create the event without noteOrder reference first
     const programme = new event({
       title: req.body.title,
       startDate: new Date(req.body.startDate),
@@ -81,14 +44,11 @@ export const createProgramme = async (req, res) => {
       targetAudience: safeJSONParse(req.body.targetAudience, []),
       resourcePersons: safeJSONParse(req.body.resourcePersons, []),
       approvers: safeJSONParse(req.body.approvers, []),
-      budgetBreakdown: { ...budgetBreakdown, income: calculatedIncome, totalIncome, totalExpenditure, universityOverhead },
-      noteOrder: savedNoteOrder._id, // Reference to NoteOrder document
-      // Handle organizing departments
+      budgetBreakdown,
       organizingDepartments: safeJSONParse(req.body.organizingDepartments, {
         primary: "DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING (DCSE)",
         associative: []
       }),
-      // Handle department approvers
       departmentApprovers: safeJSONParse(req.body.departmentApprovers, [{
         department: "DCSE",
         hodName: "",
@@ -97,25 +57,49 @@ export const createProgramme = async (req, res) => {
         approvedDate: null,
         signature: ""
       }]),
-      // Handle registration procedure with safe parsing
       registrationProcedure: safeJSONParse(req.body.registrationProcedure, { enabled: false }),
       createdBy: req.body.createdBy,
       reviewedBy: req.body.reviewedBy,
     });
 
     const savedProgramme = await programme.save();
-    
-    // 🎨 AUTO-GENERATE AI BROCHURE: Generate advanced AI brochure automatically after event creation
+
+    // 2) Compute NoteOrder totals server-side from provided budgetBreakdown
+    const computedIncome = (budgetBreakdown.income || []).map(i => {
+      const participants = Number(i.expectedParticipants || 0);
+      const amount = Number(i.perParticipantAmount || 0);
+      const gst = Number(i.gstPercentage || 0);
+      const incomeVal = participants * amount * (1 - gst / 100);
+      return { ...i, income: Math.round(incomeVal * 100) / 100 };
+    });
+    const totalIncome = computedIncome.reduce((s, i) => s + (Number(i.income) || 0), 0);
+    const computedExpenses = (budgetBreakdown.expenses || []).map(e => ({
+      category: e.category,
+      amount: Number(e.amount || 0)
+    }));
+    const totalExpenditure = computedExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const universityOverhead = Math.round(totalIncome * 0.30 * 100) / 100;
+
+    // 3) Create NoteOrder document linked to event
+    const noteOrderDoc = await NoteOrder.create({
+      eventId: savedProgramme._id,
+      income: computedIncome,
+      expenses: computedExpenses,
+      totalIncome,
+      totalExpenditure,
+      universityOverhead,
+    });
+
+    // 4) Attach NoteOrder to event and save
+    savedProgramme.noteOrder = noteOrderDoc._id;
+    await savedProgramme.save();
+
+    // 🎨 Attempt brochure generation (kept as-is)
     try {
       console.log(`🎨 Auto-generating AI brochure for event: ${savedProgramme.title} (ID: ${savedProgramme._id})`);
-
-      // Generate advanced AI brochure using the advancedBrochureGenerator
       const brochureDoc = await generateEventBrochure(savedProgramme);
-      
       if (brochureDoc) {
         const pdfBuffer = Buffer.from(brochureDoc.output('arraybuffer'));
-        
-        // Save AI brochure data directly to MongoDB
         const brochureUpdateData = {
           brochureGenerated: true,
           brochureGeneratedAt: new Date(),
@@ -126,46 +110,25 @@ export const createProgramme = async (req, res) => {
             generatedAt: new Date(),
             version: '2.0',
             features: ['ai-content', 'smart-layout', 'registration-form', 'organizing-committee', 'intelligent-descriptions']
-          },
-          brochureGenerationHistory: [{
-            generatedAt: new Date(),
-            version: '2.0',
-            features: ['ai-content', 'smart-layout', 'registration-form', 'organizing-committee'],
-            fileSize: pdfBuffer.length,
-            generatedBy: req.user?._id
-          }]
+          }
         };
-
-        // Update the saved programme with AI brochure data
-        await event.findByIdAndUpdate(savedProgramme._id, brochureUpdateData);
-
-        console.log(`✅ AI Brochure generated and saved to MongoDB for event: ${savedProgramme.title}`);
-
-        // Return response with brochure status
-        const responseData = {
-          ...savedProgramme.toObject(),
-          brochureGenerated: true,
-          brochureGeneratedAt: new Date().toISOString(),
-          brochureType: 'ai-enhanced'
-        };
-
-        res.status(201).json(responseData);
-      } else {
-        throw new Error('Failed to generate AI brochure document');
+        await event.findByIdAndUpdate(savedProgramme._id, brochureUpdateData, { new: true });
       }
 
+      const responseData = await event.findById(savedProgramme._id)
+        .populate('noteOrder')
+        .lean();
+      res.status(201).json(responseData);
     } catch (brochureError) {
-      console.error(`❌ Failed to auto-generate AI brochure for event ${savedProgramme.title}:`, brochureError);
-
-      // Don't fail the event creation if brochure generation fails
-      // Just log the error and return the event without brochure
-      const responseData = {
-        ...savedProgramme.toObject(),
+      console.error("❌ Auto brochure generation failed:", brochureError);
+      const responseData = await event.findById(savedProgramme._id)
+        .populate('noteOrder')
+        .lean();
+      res.status(201).json({
+        ...responseData,
         brochureGenerated: false,
         brochureError: brochureError.message
-      };
-
-      res.status(201).json(responseData);
+      });
     }
   } catch (error) {
     console.error("❌ Error creating programme:", error);
@@ -180,19 +143,14 @@ export const createProgramme = async (req, res) => {
 export const getProgrammes = async (req, res) => {
   try {
     let query = {};
-    
-    // Filter events based on user role
     if (req.user && req.user._id) {
       if (req.user.role === 'coordinator') {
-        // Coordinators can only see events they created
         query.createdBy = req.user._id;
       } else if (req.user.role === 'hod') {
-        // HODs can see all events in their department
         if (req.user.department) {
           query['organizingDepartments.primary'] = req.user.department;
         }
       } else if (req.user.role === 'admin') {
-        // Admins can see all events (no filter)
         query = {};
       }
     }
@@ -201,8 +159,9 @@ export const getProgrammes = async (req, res) => {
       .find(query)
       .populate('createdBy', 'name email role')
       .populate('reviewedBy', 'name email role')
+      .populate('noteOrder')
       .sort({ createdAt: -1 });
-    
+
     console.log(`📊 Found ${programmes.length} programmes for user ${req.user?.name || 'anonymous'} (role: ${req.user?.role || 'none'})`);
 
     res.json(programmes);
