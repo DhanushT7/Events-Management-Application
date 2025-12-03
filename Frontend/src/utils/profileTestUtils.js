@@ -1,6 +1,8 @@
 import axios from 'axios';
 
 // Test profile update functionality
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api';
+
 export const testProfileUpdate = async () => {
   try {
     const token = localStorage.getItem('token');
@@ -23,7 +25,7 @@ export const testProfileUpdate = async () => {
     console.log('Testing profile update with data:', testData);
 
     const response = await axios.put(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/profile`,
+      `${API_BASE_URL}/coordinator/profile`,
       testData,
       {
         headers: { 
@@ -56,7 +58,7 @@ export const testProfileFetch = async () => {
     console.log('Testing profile fetch...');
 
     const response = await axios.get(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/profile`,
+      `${API_BASE_URL}/coordinator/profile`,
       {
         headers: { Authorization: `Bearer ${token}` }
       }
@@ -85,7 +87,7 @@ export const testProfileStats = async () => {
     console.log('Testing profile stats fetch...');
 
     const response = await axios.get(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/profile/stats`,
+      `${API_BASE_URL}/coordinator/profile/stats`,
       {
         headers: { Authorization: `Bearer ${token}` }
       }

@@ -311,7 +311,7 @@ This application currently implements **Module 4** of a comprehensive 10-module 
    Create a `.env` file in the `Backend` directory:
    ```env
    PORT=4000
-   MONGO_URI=mongodb://localhost:27017/events-management
+   MONGO_URI=mongodb+srv://event:event123@recruiterprofile.lyuu6mz.mongodb.net/
    JWT_SECRET=your-super-secret-jwt-key
    EMAIL_USER=your-email@gmail.com
    EMAIL_PASS=your-app-password
@@ -321,7 +321,7 @@ This application currently implements **Module 4** of a comprehensive 10-module 
 2. **Frontend Configuration**
    Update API base URL in `Frontend/src/services/api.js` if needed:
    ```javascript
-   const API_BASE_URL = 'http://10.5.12.1:4000/api';
+   const API_BASE_URL = 'http://localhost:4000/api';
    ```
 
 ### Database Setup
@@ -357,8 +357,8 @@ cd Frontend && npm run dev
 
 ## 📱 Application Access
 
-- **Frontend**: http://10.5.12.1:5173
-- **Backend API**: http://10.5.12.1:4000
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:4000
 - **MongoDB**: mongodb://localhost:27017
 
 ## 👥 Default User Accounts
@@ -626,7 +626,7 @@ GET  /api/certificates/verify/:id            # Verify certificate (public)
    NODE_ENV=development
    
    # Frontend/.env (optional)
-   VITE_API_BASE_URL=http://10.5.12.1:4000/api
+   VITE_API_BASE_URL=http://localhost:4000/api
    VITE_APP_NAME=Events Management System
    ```
 

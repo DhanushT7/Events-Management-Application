@@ -378,7 +378,7 @@ nano .env
 
 **Update MongoDB URI in .env:**
 ```env
-MONGO_URI=mongodb://events_app:events_app_password_2024@10.5.12.1:27017/events_management
+MONGO_URI=mongodb://events_app:events_app_password_2024@localhost:27017/events_management
 ```
 
 ### **Step 3: Database Initialization**
@@ -426,7 +426,7 @@ server {
     
     # Backend API proxy
     location /api/ {
-        proxy_pass http://10.5.12.1:4000;
+        proxy_pass http://localhost:4000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

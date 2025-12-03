@@ -94,14 +94,14 @@ const CoordinatorEventDashboard = () => {
 
   const fetchEventDetails = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes/${eventId}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes/${eventId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setEvent(response.data);
       
-      // Initialize claim data with budget breakdown expenses
-      if (response.data.budgetBreakdown?.expenses) {
-        setClaimData(response.data.budgetBreakdown.expenses.map(expense => ({
+      // Initialize claim data with note order expenses (initial budget)
+      if (response.data.noteOrder?.expenses) {
+        setClaimData(response.data.noteOrder.expenses.map(expense => ({
           category: expense.category,
           budgetAmount: expense.amount,
           actualAmount: 0,
@@ -117,7 +117,7 @@ const CoordinatorEventDashboard = () => {
 
   const fetchParticipants = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/events/${eventId}/participants`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/events/${eventId}/participants`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       
@@ -143,7 +143,7 @@ const CoordinatorEventDashboard = () => {
   const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this event?")) {
       try {
-        await axios.delete(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes/${eventId}`, {
+        await axios.delete(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes/${eventId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
         enqueueSnackbar("Event deleted successfully", { variant: "success" });
@@ -168,7 +168,7 @@ const CoordinatorEventDashboard = () => {
       };
 
       await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes/${eventId}/claim`,
+        `http://10.5.12.1:4000/api/coordinator/programmes/${eventId}/claim`,
         claimPayload,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -256,7 +256,7 @@ const CoordinatorEventDashboard = () => {
 
   const viewProposalPDF = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes/${eventId}/pdf`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes/${eventId}/pdf`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem("token")}`,
@@ -739,32 +739,32 @@ const CoordinatorEventDashboard = () => {
                         💰 Budget Breakdown
                       </Typography>
                       
-                      {event.budgetBreakdown?.income?.length > 0 && (
+                      {event.noteOrder?.income?.length > 0 && (
                         <>
                           <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: theme.palette.success.main, fontWeight: 600 }}>
                             Income Sources
                           </Typography>
-                          {event.budgetBreakdown.income.map((item, index) => (
+                          {event.noteOrder.income.map((item, index) => (
                             <Box key={index} display="flex" justifyContent="space-between" sx={{ mb: 1, p: 1, backgroundColor: alpha(theme.palette.success.main, 0.05), borderRadius: 1 }}>
                               <Typography variant="body2">{item.category}</Typography>
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                ₹{item.income?.toLocaleString()}
+                                ₹{Number(item.income || 0).toLocaleString()}
                               </Typography>
                             </Box>
                           ))}
                         </>
                       )}
                       
-                      {event.budgetBreakdown?.expenses?.length > 0 && (
+                      {event.noteOrder?.expenses?.length > 0 && (
                         <>
                           <Typography variant="subtitle2" sx={{ mt: 3, mb: 1, color: theme.palette.error.main, fontWeight: 600 }}>
                             Expense Categories
                           </Typography>
-                          {event.budgetBreakdown.expenses.map((item, index) => (
+                          {event.noteOrder.expenses.map((item, index) => (
                             <Box key={index} display="flex" justifyContent="space-between" sx={{ mb: 1, p: 1, backgroundColor: alpha(theme.palette.error.main, 0.05), borderRadius: 1 }}>
                               <Typography variant="body2">{item.category}</Typography>
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                ₹{item.amount?.toLocaleString()}
+                                ₹{Number(item.amount || 0).toLocaleString()}
                               </Typography>
                             </Box>
                           ))}

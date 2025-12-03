@@ -101,7 +101,7 @@ const OrganizingCommitteeManager = ({ eventId, event, onUpdate }) => {
 
   const fetchAvailableMembers = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/committee-members`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/committee-members`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setAvailableMembers(response.data.members || []);
@@ -115,7 +115,7 @@ const OrganizingCommitteeManager = ({ eventId, event, onUpdate }) => {
   const handleAddMember = async () => {
     try {
       setLoading(true);
-      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/committee-members`, newMember, {
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/committee-members`, newMember, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       
@@ -190,7 +190,7 @@ const OrganizingCommitteeManager = ({ eventId, event, onUpdate }) => {
         committeeDisplaySettings: displaySettings
       };
 
-      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/events/${eventId}/organizing-committee`, payload, {
+      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/events/${eventId}/organizing-committee`, payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
 

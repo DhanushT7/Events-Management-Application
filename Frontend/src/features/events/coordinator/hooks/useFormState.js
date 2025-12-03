@@ -233,7 +233,7 @@ export const useFormState = (setOpenForm, fetchEvents, enqueueSnackbar) => {
       }
 
       // Get HOD info
-      const hodResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/getHOD?id=${user._id}`, {
+      const hodResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/getHOD?id=${user._id}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -287,7 +287,7 @@ export const useFormState = (setOpenForm, fetchEvents, enqueueSnackbar) => {
 
       if (editId) {
         await axios.put(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes/${editId}`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes/${editId}`,
           formPayload,
           {
             headers: {
@@ -299,7 +299,7 @@ export const useFormState = (setOpenForm, fetchEvents, enqueueSnackbar) => {
         enqueueSnackbar("Note Order updated successfully!", { variant: "success" });
       } else {
         await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes`,
           formPayload,
           {
             headers: {

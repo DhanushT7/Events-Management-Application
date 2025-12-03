@@ -131,7 +131,7 @@ const RegistrationProcedureManager = ({ eventId, event, onUpdate }) => {
       setLoading(true);
       
       await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/events/${eventId}/registration-procedure`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/events/${eventId}/registration-procedure`,
         { registrationProcedure },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }

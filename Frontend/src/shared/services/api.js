@@ -1,6 +1,6 @@
 // API service for making backend requests
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://10.5.12.1:4000/api";
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {

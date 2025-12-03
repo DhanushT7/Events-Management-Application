@@ -60,7 +60,7 @@ const NotificationCenter = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/hod/notifications`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/hod/notifications`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setNotifications(response.data.notifications || []);
@@ -134,7 +134,7 @@ const NotificationCenter = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/hod/notifications/${notificationId}/read`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/hod/notifications/${notificationId}/read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -158,7 +158,7 @@ const NotificationCenter = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.delete(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/hod/notifications/${notificationId}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/hod/notifications/${notificationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -175,7 +175,7 @@ const NotificationCenter = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/hod/notifications/mark-all-read`,
+        'http://10.5.12.1:4000/api/hod/notifications/mark-all-read',
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

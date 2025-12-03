@@ -33,7 +33,7 @@ class CertificateGenerationService {
   // Generate QR Code for certificate verification
   async generateQRCode(certificateId) {
     try {
-      const verificationUrl = `${process.env.FRONTEND_URL || 'http://10.5.12.1:5173'}/verify-certificate/${certificateId}`;
+      const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-certificate/${certificateId}`;
       const qrCodeDataURL = await QRCode.toDataURL(verificationUrl, {
         type: 'image/png',
         width: 150,
@@ -1184,7 +1184,7 @@ ${coordinatorName}                                      ${hodName}
 Program Coordinator                                      Head of Department
 
 This certificate is digitally verifiable.
-Verification URL: ${process.env.FRONTEND_URL || 'http://10.5.12.1:5173'}/verify-certificate/${certificateId}
+Verification URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-certificate/${certificateId}
 
 ═══════════════════════════════════════════════════════════════════════════════
     `.trim();

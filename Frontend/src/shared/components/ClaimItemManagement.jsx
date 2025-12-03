@@ -66,7 +66,7 @@ const ClaimItemManagement = ({ eventId }) => {
       const token = localStorage.getItem('token');
 
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/claims/events/${eventId}/claim-items`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/claims/events/${eventId}/claim-items`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -101,7 +101,7 @@ const ClaimItemManagement = ({ eventId }) => {
       };
 
       await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/claims/events/${eventId}/claim-items/${selectedItem.index}/status`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/claims/events/${eventId}/claim-items/${selectedItem.index}/status`,
         payload,
         {
           headers: {
@@ -124,7 +124,7 @@ const ClaimItemManagement = ({ eventId }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/claims/events/${eventId}/claim-items/${itemIndex}/receipt`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/claims/events/${eventId}/claim-items/${itemIndex}/receipt`,
         {},
         {
           responseType: 'blob',
@@ -157,7 +157,7 @@ const ClaimItemManagement = ({ eventId }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/claims/events/${eventId}/claim-items/${itemIndex}/receipt`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/claims/events/${eventId}/claim-items/${itemIndex}/receipt`,
         {
           responseType: 'blob',
           headers: {

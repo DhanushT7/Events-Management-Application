@@ -318,15 +318,15 @@ class ModuleIntegrationService {
   // Generic API caller for module communication
   async callModuleAPI(module, method, endpoint, data) {
     const moduleBaseUrls = {
-      'module1': process.env.MODULE1_API_URL || 'http://10.5.12.1:5001/api',
-      'module2': process.env.MODULE2_API_URL || 'http://10.5.12.1:5002/api',
-      'module3': process.env.MODULE3_API_URL || 'http://10.5.12.1:5003/api',
-      'module5': process.env.MODULE5_API_URL || 'http://10.5.12.1:5005/api',
-      'module6': process.env.MODULE6_API_URL || 'http://10.5.12.1:5006/api',
-      'module7': process.env.MODULE7_API_URL || 'http://10.5.12.1:5007/api',
-      'module8': process.env.MODULE8_API_URL || 'http://10.5.12.1:5008/api',
-      'module9': process.env.MODULE9_API_URL || 'http://10.5.12.1:5009/api',
-      'module10': process.env.MODULE10_API_URL || 'http://10.5.12.1:5010/api'
+      'module1': process.env.MODULE1_API_URL || 'http://localhost:5001/api',
+      'module2': process.env.MODULE2_API_URL || 'http://localhost:5002/api',
+      'module3': process.env.MODULE3_API_URL || 'http://localhost:5003/api',
+      'module5': process.env.MODULE5_API_URL || 'http://localhost:5005/api',
+      'module6': process.env.MODULE6_API_URL || 'http://localhost:5006/api',
+      'module7': process.env.MODULE7_API_URL || 'http://localhost:5007/api',
+      'module8': process.env.MODULE8_API_URL || 'http://localhost:5008/api',
+      'module9': process.env.MODULE9_API_URL || 'http://localhost:5009/api',
+      'module10': process.env.MODULE10_API_URL || 'http://localhost:5010/api'
     };
     
     const baseUrl = moduleBaseUrls[module];
@@ -722,38 +722,38 @@ MONGO_URI=mongodb://localhost:27017/events_management
 # Module 4 (Current)
 MODULE4_PORT=4000
 <<<<<<< HEAD
-MODULE4_API_URL=http://10.5.12.1:4000/api
+MODULE4_API_URL=http://localhost:4000/api
 =======
-MODULE4_API_URL=http://10.5.12.1:4000/api
+MODULE4_API_URL=http://localhost:4000/api
 >>>>>>> cac80b5d3abfd08f51962d91d59ee946ea7e4545
 
 # Other Modules (to be implemented)
 MODULE1_PORT=5001
-MODULE1_API_URL=http://10.5.12.1:5001/api
+MODULE1_API_URL=http://localhost:5001/api
 MODULE2_PORT=5002
-MODULE2_API_URL=http://10.5.12.1:5002/api
+MODULE2_API_URL=http://localhost:5002/api
 MODULE3_PORT=5003
-MODULE3_API_URL=http://10.5.12.1:5003/api
+MODULE3_API_URL=http://localhost:5003/api
 MODULE5_PORT=5005
-MODULE5_API_URL=http://10.5.12.1:5005/api
+MODULE5_API_URL=http://localhost:5005/api
 MODULE6_PORT=5006
-MODULE6_API_URL=http://10.5.12.1:5006/api
+MODULE6_API_URL=http://localhost:5006/api
 MODULE7_PORT=5007
-MODULE7_API_URL=http://10.5.12.1:5007/api
+MODULE7_API_URL=http://localhost:5007/api
 MODULE8_PORT=5008
-MODULE8_API_URL=http://10.5.12.1:5008/api
+MODULE8_API_URL=http://localhost:5008/api
 MODULE9_PORT=5009
-MODULE9_API_URL=http://10.5.12.1:5009/api
+MODULE9_API_URL=http://localhost:5009/api
 MODULE10_PORT=5010
-MODULE10_API_URL=http://10.5.12.1:5010/api
+MODULE10_API_URL=http://localhost:5010/api
 
 # Frontend
 <<<<<<< HEAD
-VITE_API_BASE_URL=http://10.5.12.1:4000/api
-VITE_MODULE_GATEWAY_URL=http://10.5.12.1:3001/api
+VITE_API_BASE_URL=http://localhost:4000/api
+VITE_MODULE_GATEWAY_URL=http://localhost:3001/api
 =======
-VITE_API_BASE_URL=http://10.5.12.1:4000/api
-VITE_MODULE_GATEWAY_URL=http://10.5.12.1:3001/api
+VITE_API_BASE_URL=http://localhost:4000/api
+VITE_MODULE_GATEWAY_URL=http://localhost:3001/api
 >>>>>>> cac80b5d3abfd08f51962d91d59ee946ea7e4545
 
 # Email Configuration
@@ -811,7 +811,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - VITE_API_BASE_URL=http://10.5.12.1:4000/api
+      - VITE_API_BASE_URL=http://localhost:4000/api
     depends_on:
       - module4-events
 
@@ -914,8 +914,8 @@ npm run migrate
 npm run seed
 
 # 8. Verify deployment
-curl http://10.5.12.1:4000/api/health
-curl http://10.5.12.1:3000
+curl http://localhost:4000/api/health
+curl http://localhost:3000
 ```
 
 #### 7.2 Monitoring and Maintenance

@@ -1,4 +1,5 @@
 import Event from "../../../shared/models/eventModel.js";
+import NoteOrder from "../../../shared/models/noteOrderModel.js";
 import asyncHandler from "express-async-handler";
 
 // Sync budget breakdown with claim bill - ensure all expenses are included
@@ -12,8 +13,8 @@ export const syncBudgetWithClaimBill = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Get budget breakdown expenses
-    const budgetExpenses = event.budgetBreakdown?.expenses || [];
+    // Get note order expenses (initial budget)
+    const budgetExpenses = event.noteOrder?.expenses || [];
 
     // Get current claim bill expenses
     const claimExpenses = event.claimBill?.expenses || [];
@@ -423,4 +424,30 @@ export const bulkSyncAllEvents = asyncHandler(async (req, res) => {
       error: error.message
     });
   }
+});
+
+// Migrate events that still have embedded noteOrder objects to NoteOrder collection
+export const migrateEmbeddedNoteOrder = asyncHandler(async (req, res) => {
+  const events = await Event.find({ noteOrder: { $exists: true, $type: 'object' } });
+  let migrated = 0;
+  for (const ev of events) {
+    try {
+      const embedded = ev.noteOrder || {};
+      const note = new NoteOrder({
+        eventId: ev._id,
+        income: embedded.income || [],
+        expenses: embedded.expenses || [],
+        totalIncome: embedded.totalIncome || 0,
+        totalExpenditure: embedded.totalExpenditure || 0,
+        universityOverhead: embedded.universityOverhead || 0,
+      });
+      const saved = await note.save();
+      ev.noteOrder = saved._id;
+      await ev.save();
+      migrated++;
+    } catch (e) {
+      console.error('Migration failed for event', ev._id, e.message);
+    }
+  }
+  res.json({ success: true, migrated });
 });

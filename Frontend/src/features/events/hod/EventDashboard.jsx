@@ -86,7 +86,7 @@ const HODEventDashboard = () => {
 
   const fetchEventDetails = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/hod/events/${eventId}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/hod/events/${eventId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setEvent(response.data);
@@ -100,7 +100,7 @@ const HODEventDashboard = () => {
 
   const fetchParticipants = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/hod/events/${eventId}/participants`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/hod/events/${eventId}/participants`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       
@@ -118,7 +118,7 @@ const HODEventDashboard = () => {
   const handleStatusUpdate = async () => {
     try {
       await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/hod/events/${eventId}/status`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/hod/events/${eventId}/status`,
         { 
           status: newStatus,
           reviewComments: comments 
@@ -140,7 +140,7 @@ const HODEventDashboard = () => {
   const downloadProposalLetter = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/hod/events/${eventId}/proposal-pdf`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/hod/events/${eventId}/proposal-pdf`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           responseType: "blob",
@@ -232,8 +232,8 @@ const HODEventDashboard = () => {
   };
 
   const calculateTotalIncome = () => {
-    if (!event.budgetBreakdown?.income) return 0;
-    return event.budgetBreakdown.income.reduce((sum, item) => sum + (item.income || 0), 0);
+    if (!event.noteOrder?.income) return 0;
+    return event.noteOrder.income.reduce((sum, item) => sum + (item.income || 0), 0);
   };
 
   const calculateTotalExpenses = () => {
@@ -771,7 +771,7 @@ const HODEventDashboard = () => {
                         <Typography variant="subtitle1" sx={{ mb: 2, color: "green" }}>
                           Income Sources
                         </Typography>
-                        {event.budgetBreakdown?.income?.map((item, index) => (
+                        {event.noteOrder?.income?.map((item, index) => (
                           <Box key={index} display="flex" justifyContent="space-between" sx={{ mb: 1, p: 1, bgcolor: "grey.50", borderRadius: 1 }}>
                             <Box>
                               <Typography variant="body2" fontWeight="bold">{item.category}</Typography>

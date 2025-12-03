@@ -42,7 +42,7 @@ const ParticipantCertificates = ({ userId }) => {
   const [detailsDialog, setDetailsDialog] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api';
 
   // Get auth token
   const getAuthToken = () => {

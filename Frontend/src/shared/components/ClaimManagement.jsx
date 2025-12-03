@@ -128,7 +128,7 @@ const ClaimManagement = ({ eventId }) => {
   const fetchEventData = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes/${eventId}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes/${eventId}`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         }
@@ -157,8 +157,8 @@ const ClaimManagement = ({ eventId }) => {
       setLoading(true);
       const response = await axios.get(
         eventId 
-          ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/events/${eventId}/claims`
-          : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/claims`,
+          ? `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/events/${eventId}/claims`
+          : `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/claims`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         }
@@ -204,7 +204,7 @@ const ClaimManagement = ({ eventId }) => {
   const handleViewDetails = async (claimId) => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/claims/${claimId}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/claims/${claimId}`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         }
@@ -225,7 +225,7 @@ const ClaimManagement = ({ eventId }) => {
   const submitApproval = async () => {
     try {
       await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/claims/${selectedClaim._id}/status`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/claims/${selectedClaim._id}/status`,
         {
           status: approvalAction,
           comments: approvalComments,
@@ -302,7 +302,7 @@ const ClaimManagement = ({ eventId }) => {
       });
 
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/events/${eventId}/claims`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/events/${eventId}/claims`,
         formData,
         {
           headers: { 

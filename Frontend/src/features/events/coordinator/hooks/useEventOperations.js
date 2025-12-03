@@ -8,7 +8,7 @@ export const useEventOperations = (setEvents, setLoading, setError, enqueueSnack
       setLoading(true);
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes`,
+        "http://10.5.12.1:4000/api/coordinator/programmes",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -29,7 +29,7 @@ export const useEventOperations = (setEvents, setLoading, setError, enqueueSnack
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes/${id}`,
+        `http://10.5.12.1:4000/api/coordinator/programmes/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -57,7 +57,7 @@ export const useEventOperations = (setEvents, setLoading, setError, enqueueSnack
     try {
       const token = localStorage.getItem("token");
       await axios.delete(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes/${id}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -77,7 +77,7 @@ export const useEventOperations = (setEvents, setLoading, setError, enqueueSnack
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes/${event._id}/pdf`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes/${event._id}/pdf`,
         {
           responseType: "blob",
           headers: {
@@ -139,7 +139,7 @@ export const useEventOperations = (setEvents, setLoading, setError, enqueueSnack
         formData.append('brochurePDF', pdfBlob, `Advanced_Brochure_${event.title?.replace(/[^a-zA-Z0-9]/g, '_') || 'event'}.pdf`);
         
         const token = localStorage.getItem("token");
-        await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/programmes/${event._id}/brochure/save`, {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes/${event._id}/brochure/save`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,

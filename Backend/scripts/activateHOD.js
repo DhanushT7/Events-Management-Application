@@ -21,7 +21,7 @@ import User from '../src/shared/models/userModel.js';
 
 async function connectToDatabase() {
   try {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/events-management');
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb+srv://event:event123@recruiterprofile.lyuu6mz.mongodb.net/');
     console.log('✅ Connected to MongoDB');
   } catch (error) {
     console.log(`❌ Failed to connect to MongoDB: ${error.message}`);

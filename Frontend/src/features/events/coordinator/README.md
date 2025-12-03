@@ -221,7 +221,7 @@ This has been split into:
 
 ### Environment Variables
 The components use the following environment variables:
-- `VITE_API_BASE_URL`: Base URL for API calls (defaults to http://10.5.12.1:4000/api)
+- `VITE_API_BASE_URL`: Base URL for API calls (defaults to http://localhost:4000/api)
 
 ### Theme Customization
 Components use Material-UI's theme system and can be customized by modifying the theme provider in your app.

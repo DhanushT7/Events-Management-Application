@@ -318,8 +318,8 @@ const EnhancedParticipantDashboard = ({ eventId, eventTitle, userRole = 'coordin
   const handleExport = async () => {
     try {
       const endpoint = userRole === 'hod'
-        ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/hod/events/${eventId}/participants/export`
-        : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/coordinator/participants/export/${eventId}`;
+        ? `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/hod/events/${eventId}/participants/export`
+        : `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/participants/export/${eventId}`;
         
       const response = await axios.get(endpoint, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },

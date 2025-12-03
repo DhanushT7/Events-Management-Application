@@ -444,7 +444,7 @@ const generateCertificate = async (participantId, eventId, participantName) => {
     // Generate QR Code for certificate verification
     const generateQRCode = async (certificateId) => {
       try {
-        const verificationUrl = `${process.env.FRONTEND_URL || 'http://10.5.12.1:3000'}/verify-certificate/${certificateId}`;
+        const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-certificate/${certificateId}`;
         const qrCodeBuffer = await QRCode.default.toBuffer(verificationUrl, {
           type: "png",
           width: CERTIFICATE_CONFIG.qrCode.size,
@@ -625,7 +625,7 @@ const generateCertificate = async (participantId, eventId, participantName) => {
         },
       },
       verification: {
-        verificationUrl: `${process.env.FRONTEND_URL || 'http://10.5.12.1:3000'}/verify-certificate/${certificateId}`,
+        verificationUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-certificate/${certificateId}`,
         digitalSignature: Buffer.from(certificateId).toString("base64"),
         verified: true,
       },

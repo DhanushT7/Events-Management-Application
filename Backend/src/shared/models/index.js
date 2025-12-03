@@ -6,3 +6,4 @@ export { default as Participant } from './participantModel.js';
 export { default as TrainingProgramme } from './TrainingProgramme.js';
 export { default as ConvenorCommittee } from './convenorCommitteeModel.js';
 export { default as FeedbackQuestion } from './feedbackQuestionModel.js';
+export { default as NoteOrder } from './noteOrderModel.js';

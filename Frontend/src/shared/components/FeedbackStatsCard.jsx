@@ -118,7 +118,7 @@ const FeedbackStatsCard = ({ eventId, userRole = 'coordinator' }) => {
       const baseUrl = userRole === 'hod' ? 'hod' : 'coordinator';
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/${baseUrl}/feedback/stats/${eventId}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/${baseUrl}/feedback/stats/${eventId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -140,7 +140,7 @@ const FeedbackStatsCard = ({ eventId, userRole = 'coordinator' }) => {
       const baseUrl = userRole === 'hod' ? 'hod' : 'coordinator';
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/${baseUrl}/feedback/details/${eventId}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/${baseUrl}/feedback/details/${eventId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
