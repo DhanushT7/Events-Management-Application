@@ -175,7 +175,7 @@ const NotificationCenter = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://10.5.12.1:4000/api/hod/notifications/mark-all-read',
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/hod/notifications/mark-all-read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

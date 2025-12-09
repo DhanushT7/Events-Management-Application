@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+
+// MUI components (consolidated)
 import {
   Dialog,
   DialogTitle,
@@ -7,8 +9,6 @@ import {
   Button,
   Box,
   Typography,
-  Tabs,
-  Tab,
   Card,
   CardContent,
   Stepper,
@@ -22,57 +22,64 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Chip,
-  Divider,
+  IconButton,
   Paper,
   Grid,
   Alert,
-  IconButton,
   Tooltip,
+  InputBase,
+  Slide,
+  Chip,
   useTheme,
-  alpha
 } from '@mui/material';
+
+// `alpha` must be imported from @mui/material/styles
+import { alpha } from '@mui/material/styles';
+
+// Icons (add Person so <Person /> exists)
 import {
+  Person,
   Business,
   People,
   Group,
   Security,
   ExpandMore,
-  CheckCircle,
   PlayArrow,
-  Info,
-  Warning,
+  CheckCircle,
   Lightbulb,
   Close,
   Dashboard,
   Event,
   Assignment,
-  Assessment,
-  CardMembership,
-  Feedback,
-  Person,
-  Notifications,
-  Settings,
-  Schedule,
   AttachMoney,
-  Description,
-  CloudDownload,
-  Share,
-  Print,
-  Visibility,
-  Edit,
-  Delete,
+  Settings,
   Add,
+  CardMembership,
+  CloudDownload,
+  Assessment,
+  Feedback,
   Search,
-  FilterList,
-  GetApp
+  Notifications,
 } from '@mui/icons-material';
+
+// framer-motion (keep as-is)
+import { motion } from 'framer-motion';
+
+// Animated header gradient keyframes (MUST exist before using it)
+const headerGradientKeyframes = {
+  '@keyframes fancyGrad': {
+    '0%': { backgroundPosition: '0% 50%' },
+    '50%': { backgroundPosition: '100% 50%' },
+    '100%': { backgroundPosition: '0% 50%' }
+  }
+};
+
 
 const DashboardGuide = ({ open, onClose }) => {
   const [selectedRole, setSelectedRole] = useState(0);
   const theme = useTheme();
 
-  const roles = [
+  const roles = useMemo(() => [
     {
       name: 'HOD (Head of Department)',
       icon: <Business />,
@@ -97,7 +104,7 @@ const DashboardGuide = ({ open, onClose }) => {
       color: '#9c27b0',
       description: 'Administrative functions and system management'
     }
-  ];
+  ], []);
 
   const hodGuide = {
     overview: {
@@ -360,32 +367,40 @@ const DashboardGuide = ({ open, onClose }) => {
     ]
   };
 
-  const guides = [hodGuide, coordinatorGuide, participantGuide, adminGuide];
-  const currentGuide = guides[selectedRole];
+  const guides = useMemo(() => [hodGuide, coordinatorGuide, participantGuide, adminGuide], [/* static */]);
+  const currentGuide = guides[selectedRole] || hodGuide;
+
+  const motionVariants = {
+    container: { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { staggerChildren: 0.06 } } },
+    fadeIn: { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } },
+    cardHover: { hover: { scale: 1.02, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }
+  };
 
   const renderWorkflowStep = (step, index) => (
-    <Step key={index}>
-      <StepLabel>
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          {step.label}
-        </Typography>
-      </StepLabel>
-      <StepContent>
-        <Typography variant="body1" sx={{ mb: 2 }}>
-          {step.description}
-        </Typography>
-        <List dense>
-          {step.actions.map((action, actionIndex) => (
-            <ListItem key={actionIndex}>
-              <ListItemIcon>
-                <PlayArrow color="primary" />
-              </ListItemIcon>
-              <ListItemText primary={action} />
-            </ListItem>
-          ))}
-        </List>
-      </StepContent>
-    </Step>
+    <motion.div key={index} initial="hidden" animate="show" variants={motionVariants.fadeIn}>
+      <Step>
+        <StepLabel>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            {step.label}
+          </Typography>
+        </StepLabel>
+        <StepContent>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            {step.description}
+          </Typography>
+          <List dense>
+            {step.actions.map((action, i) => (
+              <ListItem key={i} sx={{ pl: 0 }}>
+                <ListItemIcon>
+                  <PlayArrow color="primary" />
+                </ListItemIcon>
+                <ListItemText primary={action} />
+              </ListItem>
+            ))}
+          </List>
+        </StepContent>
+      </Step>
+    </motion.div>
   );
 
   return (
@@ -397,194 +412,240 @@ const DashboardGuide = ({ open, onClose }) => {
       PaperProps={{
         sx: {
           height: '90vh',
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+          overflow: 'hidden',
+          ...headerGradientKeyframes,
+          background: 'linear-gradient(180deg, rgba(250,250,252,1) 0%, rgba(240,246,255,0.9) 100%)'
         }
       }}
+      aria-labelledby="dashboard-guide-title"
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        mb: 2
-      }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-          Dashboard User Guide
-        </Typography>
-        <IconButton onClick={onClose} sx={{ color: 'white' }}>
-          <Close />
-        </IconButton>
+      <DialogTitle
+        id="dashboard-guide-title"
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          p: 2.5,
+          mb: 1,
+          borderBottom: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+          // Animated header gradient
+          backgroundImage: 'linear-gradient(90deg,#667eea 0%,#764ba2 50%, #4f46e5 100%)',
+          backgroundSize: '200% 200%',
+          animation: 'fancyGrad 6s ease infinite',
+          color: 'white'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: 0.3 }}>
+            Dashboard User Guide
+          </Typography>
+          <Chip
+            label="NEW"
+            size="small"
+            sx={{
+              bgcolor: alpha('#ffffff', 0.18),
+              color: 'white',
+              fontWeight: 700,
+              ml: 1
+            }}
+            icon={<Dashboard sx={{ fontSize: 16, color: 'white' }} />}
+          />
+        </Box>
+
+        <Tooltip title="Close guide">
+          <IconButton onClick={onClose} aria-label="close guide" sx={{ color: 'white' }}>
+            <Close />
+          </IconButton>
+        </Tooltip>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: 0, height: 'calc(90vh - 120px)' }}>
         <Box sx={{ display: 'flex', height: '100%' }}>
-          {/* Role Selection Sidebar */}
-          <Box sx={{ 
-            width: 300, 
-            borderRight: 1, 
+          {/* Sidebar */}
+          <Box sx={{
+            width: 320,
+            borderRight: 1,
             borderColor: 'divider',
-            background: 'rgba(255,255,255,0.9)',
-            p: 2
+            background: 'rgba(255,255,255,0.95)',
+            p: 2,
+            overflowY: 'auto'
           }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: '#333' }}>
-              Select Role
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 800, color: '#333' }}>
+              Choose your role
             </Typography>
-            {roles.map((role, index) => (
-              <Card
-                key={index}
-                sx={{
-                  mb: 2,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  border: selectedRole === index ? `2px solid ${role.color}` : '1px solid #e0e0e0',
-                  background: selectedRole === index ? alpha(role.color, 0.1) : 'white',
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: 3
-                  }
-                }}
-                onClick={() => setSelectedRole(index)}
-              >
-                <CardContent sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <Box sx={{ color: role.color, mr: 1 }}>
-                      {role.icon}
-                    </Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                      {role.name}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {role.description}
-                  </Typography>
-                </CardContent>
-              </Card>
-            ))}
-          </Box>
 
-          {/* Guide Content */}
-          <Box sx={{ flex: 1, p: 3, overflow: 'auto' }}>
-            {/* Overview Section */}
-            <Paper sx={{ p: 3, mb: 3, background: 'rgba(255,255,255,0.9)' }}>
-              <Typography variant="h4" sx={{ 
-                mb: 2, 
-                fontWeight: 'bold',
-                color: roles[selectedRole].color
-              }}>
-                {currentGuide.overview.title}
-              </Typography>
-              <Typography variant="body1" sx={{ mb: 3, fontSize: '1.1rem' }}>
-                {currentGuide.overview.description}
-              </Typography>
-
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Key Features:
-              </Typography>
-              <Grid container spacing={2}>
-                {currentGuide.overview.features.map((feature, index) => (
-                  <Grid item xs={12} md={6} key={index}>
-                    <Card sx={{ 
-                      height: '100%',
-                      background: alpha(roles[selectedRole].color, 0.05),
-                      border: `1px solid ${alpha(roles[selectedRole].color, 0.2)}`
-                    }}>
-                      <CardContent sx={{ p: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <Box sx={{ color: roles[selectedRole].color, mr: 1 }}>
-                            {feature.icon}
-                          </Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                            {feature.title}
-                          </Typography>
+            <motion.div initial="hidden" animate="show" variants={motionVariants.container}>
+              {roles.map((role, idx) => (
+                <motion.div key={role.name} whileHover="hover" variants={motionVariants.cardHover}>
+                  <Card
+                    onClick={() => setSelectedRole(idx)}
+                    role="button"
+                    aria-pressed={selectedRole === idx}
+                    sx={{
+                      mb: 2,
+                      cursor: 'pointer',
+                      borderRadius: 2,
+                      transition: 'transform 200ms ease, box-shadow 200ms ease',
+                      border: selectedRole === idx ? `2px solid ${role.color}` : '1px solid #e6e6e6',
+                      background: selectedRole === idx ? alpha(role.color, 0.06) : 'white'
+                    }}
+                  >
+                    <CardContent sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 36,
+                          height: 36,
+                          borderRadius: 1,
+                          bgcolor: alpha(role.color, 0.12),
+                          color: role.color
+                        }}>
+                          {role.icon}
                         </Box>
-                        <Typography variant="body2" color="text.secondary">
-                          {feature.desc}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </Paper>
-
-            {/* Workflows Section */}
-            <Paper sx={{ p: 3, mb: 3, background: 'rgba(255,255,255,0.9)' }}>
-              <Typography variant="h5" sx={{ 
-                mb: 3, 
-                fontWeight: 'bold',
-                color: roles[selectedRole].color
-              }}>
-                Step-by-Step Workflows
-              </Typography>
-
-              {currentGuide.workflows.map((workflow, workflowIndex) => (
-                <Accordion key={workflowIndex} sx={{ mb: 2 }}>
-                  <AccordionSummary expandIcon={<ExpandMore />}>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                      {workflow.title}
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Stepper orientation="vertical">
-                      {workflow.steps.map((step, stepIndex) => 
-                        renderWorkflowStep(step, stepIndex)
-                      )}
-                    </Stepper>
-                  </AccordionDetails>
-                </Accordion>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                            {role.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">{role.description}</Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))}
-            </Paper>
+            </motion.div>
 
-            {/* Tips Section */}
-            <Paper sx={{ p: 3, background: 'rgba(255,255,255,0.9)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Lightbulb sx={{ color: '#ffa726', mr: 1 }} />
-                <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#ffa726' }}>
-                  Pro Tips & Best Practices
-                </Typography>
-              </Box>
-              <List>
-                {currentGuide.tips.map((tip, index) => (
-                  <ListItem key={index}>
-                    <ListItemIcon>
-                      <CheckCircle color="success" />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={tip}
-                      primaryTypographyProps={{ fontSize: '1rem' }}
-                    />
-                  </ListItem>
-                ))}
+            <Paper sx={{ p: 2, mt: 2, background: alpha('#f5f5f5', 0.9) }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                Quick actions
+              </Typography>
+              <List dense>
+                <ListItem>
+                  <ListItemIcon><Add /></ListItemIcon>
+                  <ListItemText primary="Create a new event" />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon><Assignment /></ListItemIcon>
+                  <ListItemText primary="View pending proposals" />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon><Notifications /></ListItemIcon>
+                  <ListItemText primary="Subscribe to alerts" />
+                </ListItem>
               </List>
             </Paper>
+          </Box>
 
-            {/* Quick Help Alert */}
-            <Alert 
-              severity="info" 
-              sx={{ mt: 3 }}
-              icon={<Info />}
-            >
-              <Typography variant="body1">
-                <strong>Need more help?</strong> Contact the system administrator or refer to the detailed documentation 
-                available in your dashboard's help section.
-              </Typography>
-            </Alert>
+          {/* Main content */}
+          <Box sx={{ flex: 1, p: 3, overflowY: 'auto' }}>
+            <motion.div initial="hidden" animate="show" variants={motionVariants.container}>
+              {/* Overview */}
+              <motion.div variants={motionVariants.fadeIn}>
+                <Paper sx={{ p: 3, mb: 3, background: 'rgba(255,255,255,0.95)' }}>
+                  <Typography variant="h4" sx={{ mb: 1, fontWeight: 900, color: roles[selectedRole].color }}>
+                    {currentGuide.overview?.title ?? 'Overview'}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 2, fontSize: '1rem' }}>
+                    {currentGuide.overview?.description ?? ''}
+                  </Typography>
+
+                  <Grid container spacing={2}>
+                    {(currentGuide.overview?.features || []).map((feature, i) => (
+                      <Grid item xs={12} md={6} key={i}>
+                        <motion.div whileHover={{ scale: 1.02 }} style={{ height: '100%' }}>
+                          <Card sx={{
+                            height: '100%',
+                            borderRadius: 2,
+                            p: 1,
+                            background: alpha(roles[selectedRole].color, 0.04),
+                            border: `1px solid ${alpha(roles[selectedRole].color, 0.16)}`
+                          }}>
+                            <CardContent sx={{ p: 2 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ color: roles[selectedRole].color }}>{feature.icon}</Box>
+                                <Box>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{feature.title}</Typography>
+                                  <Typography variant="body2" color="text.secondary">{feature.desc}</Typography>
+                                </Box>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Paper>
+              </motion.div>
+
+              {/* Workflows */}
+              <motion.div variants={motionVariants.fadeIn}>
+                <Paper sx={{ p: 3, mb: 3, background: 'rgba(255,255,255,0.95)' }}>
+                  <Typography variant="h5" sx={{ mb: 2, fontWeight: 800, color: roles[selectedRole].color }}>
+                    Step-by-Step Workflows
+                  </Typography>
+
+                  {(currentGuide.workflows || []).map((workflow, wi) => (
+                    <Accordion key={wi} disableGutters sx={{ mb: 2, borderRadius: 1 }}>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Typography variant="h6" sx={{ fontWeight: 800 }}>{workflow.title}</Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Stepper orientation="vertical" nonLinear>
+                          {workflow.steps.map((step, si) => renderWorkflowStep(step, si))}
+                        </Stepper>
+                      </AccordionDetails>
+                    </Accordion>
+                  ))}
+                </Paper>
+              </motion.div>
+
+              {/* Tips & Footer */}
+              <motion.div variants={motionVariants.fadeIn}>
+                <Paper sx={{ p: 3, background: 'rgba(255,255,255,0.95)' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <Lightbulb sx={{ color: '#ffa726' }} />
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#ffa726' }}>Pro Tips</Typography>
+                  </Box>
+
+                  <List dense>
+                    {(currentGuide.tips || []).map((tip, i) => (
+                      <ListItem key={i}>
+                        <ListItemIcon>
+                          <CheckCircle color="success" />
+                        </ListItemIcon>
+                        <ListItemText primary={tip} />
+                      </ListItem>
+                    ))}
+                  </List>
+
+                  <Alert severity="info" sx={{ mt: 3 }}>
+                    <Typography variant="body2">
+                      <strong>Need help?</strong> Contact your system administrator or open a support ticket from the dashboard.
+                    </Typography>
+                  </Alert>
+                </Paper>
+              </motion.div>
+            </motion.div>
           </Box>
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, background: 'rgba(255,255,255,0.9)' }}>
-        <Button 
-          onClick={onClose} 
-          variant="contained" 
-          sx={{ 
-            background: `linear-gradient(45deg, ${roles[selectedRole].color} 30%, ${alpha(roles[selectedRole].color, 0.8)} 90%)`,
-            color: 'white',
-            fontWeight: 'bold'
+      <DialogActions sx={{ p: 2, borderTop: `1px solid ${alpha(theme.palette.divider, 0.7)}`, background: 'rgba(250,250,252,0.95)' }}>
+        <Button
+          onClick={onClose}
+          variant="contained"
+          sx={{
+            background: `linear-gradient(45deg, ${roles[selectedRole].color} 30%, ${alpha(roles[selectedRole].color, 0.85)} 90%)`,
+            color: '#fff',
+            fontWeight: 700
           }}
         >
-          Got It!
+          Got it
+        </Button>
+        <Button onClick={() => window.print()} startIcon={<Notifications />} variant="outlined">
+          Print / Notify
         </Button>
       </DialogActions>
     </Dialog>

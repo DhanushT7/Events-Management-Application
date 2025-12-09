@@ -61,16 +61,7 @@ const feedbackSchema = mongoose.Schema(
       required: true
     },
 
-    // Legacy fields for backward compatibility
-    q7: { type: Number },
-    q8: { type: Number },
-    q9: { type: Number },
-    q10: { type: Number },
-    q11: { type: Number },
-    q12: { type: String },
-    q13: { type: Number },
-    q14: { type: String },
-    q15: { type: String },
+    // Legacy fields removed: use `responses` map for all questions
 
     // Overall rating (calculated from responses)
     overallRating: {
@@ -103,6 +94,28 @@ const feedbackSchema = mongoose.Schema(
 feedbackSchema.index({ eventId: 1, participantId: 1 }, { unique: true });
 feedbackSchema.index({ eventId: 1, createdAt: -1 });
 feedbackSchema.index({ overallRating: 1 });
+
+// Compute overallRating automatically from numeric rating-type responses (1–5 scale)
+feedbackSchema.pre('save', function(next) {
+  try {
+    const resMap = this.responses || new Map();
+    const numericValues = [];
+    // Iterate map values and collect valid 1-5 numbers
+    for (const [, v] of resMap) {
+      const num = Number(v);
+      if (!Number.isNaN(num) && num >= 1 && num <= 5) {
+        numericValues.push(num);
+      }
+    }
+    if (numericValues.length > 0) {
+      const avg = numericValues.reduce((a,b)=>a+b,0) / numericValues.length;
+      this.overallRating = Math.round(avg * 100) / 100; // keep two decimals
+    }
+  } catch (e) {
+    // Do not block save on rating compute errors
+  }
+  next();
+});
 
 const Feedback = mongoose.model("Feedback", feedbackSchema);
 export default Feedback;

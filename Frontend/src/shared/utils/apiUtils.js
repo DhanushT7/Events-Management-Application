@@ -21,7 +21,9 @@ const handleAuthError = (response) => {
 
     localStorage.removeItem('token');
     localStorage.removeItem('userInfo');
-    alert('Your session has expired or is invalid. Please log in again.');
+    window.dispatchEvent(new CustomEvent('app:notify', {
+      detail: { message: 'Your session has expired or is invalid. Please log in again.', options: { variant: 'warning' } }
+    }));
     window.location.href = '/';
     return true; // Indicates auth error was handled
   }

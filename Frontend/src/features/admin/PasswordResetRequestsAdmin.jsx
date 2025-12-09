@@ -17,20 +17,15 @@ import {
   Alert,
   Paper
 } from '@mui/material';
-import { 
-  Person, 
-  Email, 
-  CheckCircle, 
-  Cancel, 
-  AccessTime,
-  Security 
-} from '@mui/icons-material';
+import { useSnackbar } from 'notistack';
+import { Person, Email, CheckCircle, Cancel, Security } from '@mui/icons-material';
 
 const PasswordResetRequestsAdmin = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [rejectDialog, setRejectDialog] = useState({ open: false, requestId: null });
   const [rejectReason, setRejectReason] = useState('');
+  const { enqueueSnackbar } = useSnackbar();
 
   const token = localStorage.getItem('token');
 
@@ -62,21 +57,17 @@ const PasswordResetRequestsAdmin = () => {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
-      // Update local state
-      setRequests(prev => prev.map(req => 
+      enqueueSnackbar(response.data.message || 'Password reset approved successfully!', { variant: 'success' });
+      setRequests(prev => prev.map(req => (
         req.id === requestId 
           ? { ...req, status: 'approved', processedAt: new Date().toISOString() }
           : req
-      ));
-      
-      alert(response.data.message || 'Password reset approved successfully!');
-      
+      )));
       // Refresh data to get latest state
       fetchRequests();
     } catch (error) {
       console.error('Error approving request:', error);
-      alert(error.response?.data?.message || 'Error approving request');
+      enqueueSnackbar(error.response?.data?.message || 'Error approving request', { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -84,7 +75,7 @@ const PasswordResetRequestsAdmin = () => {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      alert('Please provide a reason for rejection');
+      enqueueSnackbar('Please provide a reason for rejection', { variant: 'warning' });
       return;
     }
 
@@ -95,23 +86,20 @@ const PasswordResetRequestsAdmin = () => {
         { reason: rejectReason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
       // Update local state
-      setRequests(prev => prev.map(req => 
+      setRequests(prev => prev.map(req => (
         req.id === rejectDialog.requestId 
           ? { ...req, status: 'rejected', processedAt: new Date().toISOString(), reason: rejectReason }
           : req
-      ));
-      
+      )));
       setRejectDialog({ open: false, requestId: null });
       setRejectReason('');
-      alert(response.data.message || 'Password reset request rejected.');
-      
+      enqueueSnackbar(response.data.message || 'Password reset request rejected.', { variant: 'info' });
       // Refresh data to get latest state
       fetchRequests();
     } catch (error) {
       console.error('Error rejecting request:', error);
-      alert(error.response?.data?.message || 'Error rejecting request');
+      enqueueSnackbar(error.response?.data?.message || 'Error rejecting request', { variant: 'error' });
     } finally {
       setLoading(false);
     }

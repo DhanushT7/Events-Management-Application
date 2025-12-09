@@ -29,6 +29,7 @@ router.get('/certificate-image/:certificateId', participantController.getCertifi
 // Feedback routes
 router.get('/feedback-questions', participantController.getFeedbackQuestions);
 router.post('/feedback', authorizeRoles('participant'), participantController.giveFeedback);
+router.get('/events/:eventId/feedback-template', authorizeRoles('participant'), participantController.getEventFeedbackTemplate);
 
 // Activity and notifications with self-access authorization
 router.get('/recent-activity/:participantId', authorizeParticipantSelfAccess('participantId'), participantController.getRecentActivity);

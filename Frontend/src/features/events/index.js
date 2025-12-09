@@ -1,3 +1,5 @@
+export { default as CoordinatorEventTemplate } from './CoordinatorEventTemplate.jsx';
+export { default as TemplateAnalysis } from './TemplateAnalysis.jsx';
 // Events Feature Module
 export { default as CoordinatorDashboard } from './coordinator/CoordinatorDashboard.jsx';
 export { default as CoordinatorEventDashboard } from './coordinator/components/CoordinatorEventDashboard.jsx';

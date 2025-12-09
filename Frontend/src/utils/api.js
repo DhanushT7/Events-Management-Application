@@ -28,7 +28,7 @@ api.interceptors.response.use(
       // Token expired or invalid, clear storage and redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('userInfo');
-      window.location.href = '/admin/login';
+      window.location.href = '/login/admin';
     }
     return Promise.reject(error);
   }

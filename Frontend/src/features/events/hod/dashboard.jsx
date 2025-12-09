@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext } from "react";
+import { useSnackbar } from 'notistack';
 import NavbarHod from "./utils/navbar";
 import Overview from "./drawerPages/overview/overview";
 import Proposals from "./drawerPages/proposals";
@@ -19,6 +20,7 @@ import NotificationCenter from "./Components/NotificationCenter";
 export const SelectedEventContext = createContext();
 
 const HodDashboard = () => {
+  const { enqueueSnackbar } = useSnackbar();
   const [activePage, setActivePage] = useState("overview");
   const [selectedEvent, setSelectedEvent] = useState("");
   const { user, events, setEvents } = eventState();
@@ -39,7 +41,7 @@ const HodDashboard = () => {
           if (res.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('userInfo');
-            alert('Your session has expired. Please log in again.');
+            enqueueSnackbar('Your session has expired. Please log in again.', { variant: 'warning' });
             window.location.href = '/';
             return;
           }

@@ -751,3 +751,88 @@ export const resetPasswordByRole = async (req, res) => {
     });
   }
 };
+
+// Reset password for a single user
+export const resetUserPassword = async (req, res) => {
+  try {
+    const role = req.user?.role;
+    const allowed = ['admin','hod','coordinator'];
+    if (!allowed.includes(role)) {
+      return res.status(403).json({ message: 'Not authorized to reset passwords' });
+    }
+    const { userId } = req.params;
+    const { password } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+    if (!password || typeof password !== 'string' || password.trim() === '') {
+      return res.status(400).json({ message: "Valid 'password' is required in body" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent resetting admin password unless requester is admin (enforced by route middleware ideally)
+    if (user.role === 'admin' && role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can reset admin passwords' });
+    }
+    // Hash/encrypt new password
+    const encryptedPassword = await encrypt(password);
+
+    await User.findByIdAndUpdate(userId, { password: encryptedPassword });
+
+    return res.status(200).json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Single user password reset error:', error);
+    return res.status(500).json({ message: 'Error resetting password', error: error.message });
+  }
+};
+
+// Bulk reset passwords for multiple users
+export const bulkResetPasswords = async (req, res) => {
+  try {
+    const role = req.user?.role;
+    const allowed = ['admin','hod','coordinator'];
+    if (!allowed.includes(role)) {
+      return res.status(403).json({ message: 'Not authorized to reset passwords' });
+    }
+    const { userIds, password } = req.body;
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ message: "'userIds' must be a non-empty array" });
+    }
+    if (!password || typeof password !== 'string' || password.trim() === '') {
+      return res.status(400).json({ message: "Valid 'password' is required in body" });
+    }
+
+    // Fetch users to validate and exclude admins
+    const users = await User.find({ _id: { $in: userIds } }).select('_id role email');
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'No users found for provided IDs' });
+    }
+
+    const adminUsers = users.filter(u => u.role === 'admin');
+    if (adminUsers.length > 0 && role !== 'admin') {
+      return res.status(403).json({ message: `Only admin can reset admin user passwords: ${adminUsers.map(u => u.email).join(', ')}` });
+    }
+
+    const encryptedPassword = await encrypt(password);
+
+    const result = await User.updateMany(
+      { _id: { $in: userIds }, role: { $ne: 'admin' } },
+      { $set: { password: encryptedPassword } }
+    );
+
+    return res.status(200).json({
+      message: `Passwords reset for ${result.modifiedCount} users`,
+      modifiedCount: result.modifiedCount,
+      requestedCount: userIds.length
+    });
+  } catch (error) {
+    console.error('Bulk password reset error:', error);
+    return res.status(500).json({ message: 'Error resetting passwords', error: error.message });
+  }
+};

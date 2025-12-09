@@ -72,7 +72,7 @@ export const useClaimOperations = (setEvents, enqueueSnackbar) => {
       
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        `http://10.5.12.1:4000/api/coordinator/claims/${selectedProgramme._id}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/claims/${selectedProgramme._id}`,
         {
           expenses: claimData,
           income: incomeData,
@@ -127,7 +127,7 @@ export const useClaimOperations = (setEvents, enqueueSnackbar) => {
       setTimeout(async () => {
         try {
           const token = localStorage.getItem("token");
-          const response = await axios.get("http://10.5.12.1:4000/api/coordinator/programmes", {
+          const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -157,13 +157,15 @@ export const useClaimOperations = (setEvents, enqueueSnackbar) => {
   const handleViewFinalBudget = useCallback((id) => {
     const token = localStorage.getItem("token");
 
-    fetch(`http://10.5.12.1:4000/api/coordinator/claims/${id}/pdf`, {
-      method: "GET",
-      headers: {
-        'Accept': 'application/pdf',
-        'Authorization': `Bearer ${token}`,
-      },
-    })
+    fetch(
+      `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/claims/${id}/pdf`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/pdf",
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((res) => {
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);

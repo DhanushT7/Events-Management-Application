@@ -102,6 +102,14 @@ const CoordinatorDashboard = () => {
     setOpenForm(true);
   };
 
+  const handleNavigateToEvent = (eventId, tabKey) => {
+    if (tabKey) {
+      navigate(`/coordinator/event/${eventId}`, { state: { defaultTab: tabKey } });
+    } else {
+      navigate(`/coordinator/event/${eventId}`);
+    }
+  };
+
   // Handle edit event
   const editEvent = async (eventId) => {
     try {
@@ -187,7 +195,7 @@ const CoordinatorDashboard = () => {
         onGeneratePDF={handleGeneratePDF}
         onViewBrochure={handleViewBrochure}
         onViewFinalBudget={handleViewFinalBudget}
-        onNavigateToEvent={(eventId) => navigate(`/coordinator/event/${eventId}`)}
+        onNavigateToEvent={handleNavigateToEvent}
       />
 
       {/* Event Form Dialog */}

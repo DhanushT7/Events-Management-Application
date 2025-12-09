@@ -156,7 +156,7 @@ const ProfileDialog = ({ open, onClose }) => {
       }
 
       const response = await axios.put(
-        'http://10.5.12.1:4000/api/coordinator/change-password',
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/change-password`,
         {
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword
@@ -224,7 +224,7 @@ const ProfileDialog = ({ open, onClose }) => {
       }
 
       const response = await axios.put(
-        'http://10.5.12.1:4000/api/coordinator/profile',
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/profile`,
         profileData,
         {
           headers: { 

@@ -40,7 +40,9 @@ axiosInstance.interceptors.response.use(
         localStorage.removeItem('userInfo');
         
         // Show user-friendly message
-        alert('Your session has expired or is invalid. Please log in again.');
+        window.dispatchEvent(new CustomEvent('app:notify', {
+          detail: { message: 'Your session has expired or is invalid. Please log in again.', options: { variant: 'warning' } }
+        }));
         
         // Redirect to login page
         window.location.href = '/';

@@ -1,0 +1,97 @@
+/* Footer styles aligned to the burgundy theme used on Home */
+.au-footer {
+  background: linear-gradient(180deg, rgba(22, 11, 11, 0.98), rgba(22, 11, 11, 0.94));
+  color: #f6f1ee;
+  border-top: 1px solid rgba(233, 196, 106, 0.2);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 48px 0 28px;
+  font-size: 14px;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.au-footer__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.au-footer__cols {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.au-footer__col {
+  flex: 1 1 240px;
+  min-width: 220px;
+}
+
+.au-footer__title {
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: #e9c46a;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.au-address {
+  line-height: 1.6;
+  color: #f6f1ee;
+  margin-bottom: 12px;
+  opacity: 0.92;
+}
+
+.au-contact a {
+  color: #e9c46a;
+  text-decoration: none;
+}
+
+.au-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.au-list li {
+  margin: 6px 0;
+}
+
+.au-list a {
+  color: #f6f1ee;
+  text-decoration: none;
+  opacity: 0.9;
+}
+
+.au-list a:hover,
+.au-contact a:hover {
+  text-decoration: underline;
+  color: #f2d283;
+}
+
+.au-footer__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(233, 196, 106, 0.15);
+  padding-top: 14px;
+  margin-top: 10px;
+  color: #e0d8cf;
+  font-size: 13px;
+}
+
+@media (max-width: 800px) {
+  .au-footer__cols {
+    flex-direction: column;
+  }
+  .au-footer__bottom {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}

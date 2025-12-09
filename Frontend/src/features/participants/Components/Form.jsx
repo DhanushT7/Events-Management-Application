@@ -1,9 +1,11 @@
 import React from 'react';
+import { useSnackbar } from 'notistack';
 import { Paper, Button, Typography, Box } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { registerEvent } from './api';
 
 const PForm = ({ user }) => {
+  const { enqueueSnackbar } = useSnackbar();
   // Get eventId from query string
   const location = useLocation();
   const navigate = useNavigate();
@@ -78,19 +80,19 @@ const PForm = ({ user }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!participantId || !eventId) {
-      alert('Missing participant or event information.');
+      enqueueSnackbar('Missing participant or event information.', { variant: 'warning' });
       return;
     }
     try {
 
       await registerEvent({ participantId, eventId });
-      alert('Registration successful! You will be redirected to the dashboard.');
+      enqueueSnackbar('Registration successful! You will be redirected to the dashboard.', { variant: 'success' });
       
       // Redirect back to participant dashboard
       navigate('/participant/dashboard');
     } catch (err) {
       console.error("❌ Registration error:", err);
-      alert('Registration failed or already registered.');
+      enqueueSnackbar('Registration failed or already registered.', { variant: 'error' });
     }
   };
 

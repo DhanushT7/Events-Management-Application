@@ -5,6 +5,7 @@ import Feedback from "../../../shared/models/feedbackModel.js";
 import User from "../../../shared/models/userModel.js";
 import Certificate from "../../../shared/models/certificateModel.js";
 import mongoose from "mongoose";
+import { getDefaultTemplateQuestions, ensureEventHasTemplate } from "../../../shared/services/feedbackTemplateService.js";
 
 // Get all events (only approved events for participants)
 export const getEvents = asyncHandler(async (req, res) => {
@@ -124,68 +125,7 @@ export const getMyCertificates = async (req, res) => {
 // Get feedback questions
 export const getFeedbackQuestions = asyncHandler(async (req, res) => {
   try {
-    const feedbackQuestions = [
-      {
-        id: 'q7',
-        question: 'How effectively do you think the organization of this training programme facilitated a conducive learning environment and promoted active participation among participants?',
-        type: 'rating',
-        required: true
-      },
-      {
-        id: 'q8',
-        question: 'How effectively did the resource persons communicate and engage with the participants to enhance their learning experience?',
-        type: 'rating',
-        required: true
-      },
-      {
-        id: 'q9',
-        question: 'How well do you think the topics covered align with the current trends and challenges, and to what extent did they contribute to your professional development?',
-        type: 'rating',
-        required: true
-      },
-      {
-        id: 'q10',
-        question: 'How effective was the presentation style in conveying the key concepts and fostering a dynamic learning environment for the participants?',
-        type: 'rating',
-        required: true
-      },
-      {
-        id: 'q11',
-        question: 'Please provide an overall assessment of the program\'s overall effectiveness',
-        type: 'rating',
-        required: true
-      },
-      {
-        id: 'q12',
-        question: 'How do you think the training programme could have been more effective? (In 2 lines)',
-        type: 'text',
-        multiline: true,
-        rows: 2,
-        required: true
-      },
-      {
-        id: 'q13',
-        question: 'How satisfied were you overall?',
-        type: 'rating',
-        required: true
-      },
-      {
-        id: 'q14',
-        question: 'Would you recommend the workshop to your colleagues or peers?',
-        type: 'radio',
-        options: ['Yes', 'No'],
-        required: true
-      },
-      {
-        id: 'q15',
-        question: 'Which topics or aspects of the sessions did you find most interesting or useful?',
-        type: 'text',
-        multiline: true,
-        rows: 3,
-        required: true
-      }
-    ];
-
+    const feedbackQuestions = await getDefaultTemplateQuestions();
     res.status(200).json({
       success: true,
       questions: feedbackQuestions,
@@ -199,6 +139,34 @@ export const getFeedbackQuestions = asyncHandler(async (req, res) => {
       error: error.message
     });
   }
+});
+
+export const getEventFeedbackTemplate = asyncHandler(async (req, res) => {
+  const { eventId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(eventId)) {
+    return res.status(400).json({ success: false, message: 'Invalid event id' });
+  }
+
+  const participantId = req.user._id;
+  const participantEvent = await ParticipantEvent.findOne({ eventId, participantId });
+  if (!participantEvent) {
+    return res.status(403).json({ success: false, message: 'You are not registered for this event' });
+  }
+
+  const event = await Event.findById(eventId).select('feedbackTemplate feedbackTemplateLocked title');
+  if (!event) {
+    return res.status(404).json({ success: false, message: 'Event not found' });
+  }
+
+  const template = await ensureEventHasTemplate(event);
+
+  res.json({
+    success: true,
+    template,
+    locked: !!event.feedbackTemplateLocked,
+    event: { _id: event._id, title: event.title }
+  });
 });
 
 // Submit feedback

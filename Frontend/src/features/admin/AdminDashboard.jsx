@@ -1,158 +1,180 @@
+// AdminDashboard.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Container,
-  Grid,
-  Paper,
-  Typography,
-  Card,
-  CardContent,
   AppBar,
   Toolbar,
   IconButton,
-  Menu,
-  MenuItem,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
   Avatar,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Button,
+  Typography,
+  TextField,
+  InputAdornment,
+  Grid,
+  Paper,
+  Fab,
+  Tooltip,
+  useTheme,
+  Divider,
+  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  CircularProgress,
-  Alert,
-  Fab,
-  Tooltip,
-  Checkbox,
-  FormControlLabel
+  CircularProgress
 } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
+
 import {
-  Dashboard,
-  People,
-  Event,
-  ExitToApp,
-  Add,
-  Edit,
-  Delete,
-  Upload,
-  Download,
   Search,
-  FilterList,
   Refresh,
-  DeleteSweep,
-  Security,
-  VpnKey
+  Menu as MenuIcon,
+  Home as HomeIcon,
+  People as PeopleIcon,
+  Event as EventIcon,
+  Mail as MailIcon,
+  Add as AddIcon,
+  CloudUpload as CloudUploadIcon,
+  ChevronLeft as ChevronLeftIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
+
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
-import PasswordResetRequestsAdmin from './PasswordResetRequestsAdmin.jsx';
+
+import UsersView from './components/UsersView';
+import EventsView from './components/EventsView';
+import MailSettingsView from './components/MailSettingsView';
+import EventsHistoryView from './components/EventsHistoryView';
+import StatCard from './components/StatCard';
+import AddUserDialog from './components/dialogs/AddUserDialog';
+import EditUserDialog from './components/dialogs/EditUserDialog';
+import BulkUploadDialog from './components/dialogs/BulkUploadDialog';
+import UploadResultsDialog from './components/dialogs/UploadResultsDialog';
+
+const NAV_ITEMS = [
+  { key: 'dashboard', label: 'Dashboard', icon: <HomeIcon /> },
+  { key: 'users', label: 'Users', icon: <PeopleIcon /> },
+  { key: 'events', label: 'Events', icon: <EventIcon /> },
+  { key: 'mail-settings', label: 'Mail', icon: <MailIcon /> },
+  { key: 'event-history', label: 'Event History', icon: <EventIcon /> }
+];
 
 const AdminDashboard = () => {
-  const [anchorEl, setAnchorEl] = useState(null);
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
+  const isSm = useMediaQuery(theme.breakpoints.up('sm'));
+
+  // UI state
+  const [drawerOpen, setDrawerOpen] = useState(true);
   const [stats, setStats] = useState({});
   const [users, setUsers] = useState([]);
   const [events, setEvents] = useState([]);
-  const [passwordResetCount, setPasswordResetCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  // Dialog states
   const [openAddUser, setOpenAddUser] = useState(false);
   const [openEditUser, setOpenEditUser] = useState(false);
   const [openBulkUpload, setOpenBulkUpload] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadResults, setUploadResults] = useState(null);
   const [showResults, setShowResults] = useState(false);
-  const [newUser, setNewUser] = useState({
-    email: '',
-    role: '',
-    department: ''
-  });
-  const [editingUser, setEditingUser] = useState({
-    _id: '',
-    name: '',
-    email: '',
-    role: '',
-    department: '',
-    isActive: true,
-    password: ''
-  });
+
+  // Forms
+  const [newUser, setNewUser] = useState({ email: '', role: '', department: '' });
+  const [editingUser, setEditingUser] = useState({ _id: '', name: '', email: '', role: '', department: '', isActive: true, password: '' });
   const [selectedUsers, setSelectedUsers] = useState([]);
-  const [openRolePasswordReset, setOpenRolePasswordReset] = useState(false);
-  const [passwordResetRole, setPasswordResetRole] = useState('');
-  const [passwordResetType, setPasswordResetType] = useState('email');
-  const [rolePasswordResetLoading, setRolePasswordResetLoading] = useState(false);
-  const [filters, setFilters] = useState({
-    search: '',
-    role: 'all',
-    department: 'all'
-  });
+  const [mailSettings, setMailSettings] = useState(null);
+  const [mailForm, setMailForm] = useState({ fromEmail: '', appPassword: '', displayName: '', service: 'gmail' });
+  const [mailLoading, setMailLoading] = useState(false);
+  const [filters, setFilters] = useState({ search: '', role: 'all', department: 'all' });
 
-  const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
-
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api';
   const adminName = localStorage.getItem('name') || 'Admin';
   const token = localStorage.getItem('token');
 
+  // Confirmation dialog state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [confirmPayload, setConfirmPayload] = useState({
+    kind: 'single', // 'single' | 'bulk'
+    userIds: [],    // array of ids to delete
+    title: 'Confirm action',
+    message: 'Are you sure you want to proceed?',
+  });
+
+  // Normalize incoming ids to a clean array of string ids; return skipped for debugging
+  function normalizeUserIds(raw) {
+    if (raw == null) return { ids: [], skipped: [] };
+    // Ignore DOM nodes / events defensively
+    if (typeof raw === 'object' && (('nodeType' in raw) || (typeof Element !== 'undefined' && raw instanceof Element))) {
+      console.warn('normalizeUserIds: received DOM node — ignoring');
+      return { ids: [], skipped: [raw] };
+    }
+
+    const arr = Array.isArray(raw) ? raw : [raw];
+    const ids = [];
+    const skipped = [];
+
+    for (const item of arr) {
+      if (item == null) { skipped.push(item); continue; }
+      if (typeof item === 'string' || typeof item === 'number') { ids.push(String(item)); continue; }
+      if (typeof item === 'object') {
+        const id = item._id ?? item.id ?? item.userId ?? item.uid ?? null;
+        if (id != null && (typeof id === 'string' || typeof id === 'number')) ids.push(String(id)); else skipped.push(item);
+        continue;
+      }
+      skipped.push(item);
+    }
+    return { ids, skipped };
+  }
+
+  // ---------- Data fetch ----------
   const fetchDashboardData = useCallback(async () => {
     if (!token) return;
-    
     try {
       setLoading(true);
-      const [statsRes, usersRes, eventsRes, passwordResetRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/admin/dashboard/stats`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/admin/users`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/admin/events`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/admin/password-reset-requests`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).catch(() => ({ data: { requests: [] } })) // Fallback if endpoint doesn't exist
+      const [statsRes, usersRes, eventsRes] = await Promise.all([
+        axios.get(`${apiBase}/admin/dashboard/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${apiBase}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${apiBase}/admin/events`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
-
-      setStats(statsRes.data);
-      setUsers(usersRes.data.users);
-      setEvents(eventsRes.data.events);
-      
-      // Count pending password reset requests
-      const pendingRequests = passwordResetRes.data.requests.filter(req => req.status === 'pending');
-      setPasswordResetCount(pendingRequests.length);
-    } catch (error) {
+      setStats(statsRes.data || {});
+      setUsers(usersRes.data.users || []);
+      setEvents(eventsRes.data.events || []);
+    } catch (err) {
       enqueueSnackbar('Error fetching dashboard data', { variant: 'error' });
+      console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [token, enqueueSnackbar]);
+  }, [apiBase, token, enqueueSnackbar]);
 
-  // Function to refresh just the password reset count
-  const refreshPasswordResetCount = useCallback(async () => {
+  const fetchMailSettings = useCallback(async () => {
     if (!token) return;
-    
+    setMailLoading(true);
     try {
-      const passwordResetRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/admin/password-reset-requests`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const pendingRequests = passwordResetRes.data.requests.filter(req => req.status === 'pending');
-      setPasswordResetCount(pendingRequests.length);
+      const res = await axios.get(`${apiBase}/auth/admin/mail-settings`, { headers: { Authorization: `Bearer ${token}` }});
+      const data = res.data || {};
+      setMailSettings(data);
+      setMailForm({ fromEmail: data.fromEmail || '', appPassword: '', displayName: data.displayName || '', service: data.service || 'gmail' });
     } catch (error) {
-      console.log('Error fetching password reset count:', error);
-      // Don't show error message as this is a background refresh
+      enqueueSnackbar(error.response?.data?.message || 'Unable to load mail settings', { variant: 'error' });
+    } finally {
+      setMailLoading(false);
     }
-  }, [token]);
+  }, [apiBase, token, enqueueSnackbar]);
 
   useEffect(() => {
     if (!token) {
@@ -162,26 +184,19 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, [token, navigate, fetchDashboardData]);
 
-  // Refresh password reset count when switching tabs
   useEffect(() => {
-    if (activeTab === 'password-reset' || activeTab === 'dashboard') {
-      refreshPasswordResetCount();
-    }
-  }, [activeTab, refreshPasswordResetCount]);
+    if (activeTab === 'mail-settings') fetchMailSettings();
+  }, [activeTab, fetchMailSettings]);
 
+  // ---------- Handlers ----------
   const handleLogout = () => {
     localStorage.clear();
-    navigate('/admin/login');
+    navigate('/login/admin');
   };
 
   const handleAddUser = async () => {
     try {
-      await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/admin/users`,
-        newUser,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
+      await axios.post(`${apiBase}/admin/users`, newUser, { headers: { Authorization: `Bearer ${token}` } });
       enqueueSnackbar('User added successfully', { variant: 'success' });
       setOpenAddUser(false);
       setNewUser({ email: '', role: '', department: '' });
@@ -192,74 +207,35 @@ const AdminDashboard = () => {
   };
 
   const handleBulkUpload = async () => {
-    if (!selectedFile) {
-      enqueueSnackbar('Please select a file', { variant: 'warning' });
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
+    if (!selectedFile) return enqueueSnackbar('Please select a file', { variant: 'warning' });
+    const formData = new FormData(); formData.append('file', selectedFile);
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/admin/users/bulk`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      );
-
+      const response = await axios.post(`${apiBase}/admin/users/bulk`, formData, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }});
       const { results, summary } = response.data;
       setUploadResults({ results, summary });
       setShowResults(true);
-      
-      enqueueSnackbar(
-        `Bulk upload completed: ${summary.successful} added, ${summary.failed} errors`,
-        { variant: summary.failed > 0 ? 'warning' : 'success' }
-      );
-      
-      setOpenBulkUpload(false);
-      setSelectedFile(null);
-      fetchDashboardData();
+      enqueueSnackbar(`Bulk upload: ${summary.successful} added, ${summary.failed} failed`, { variant: summary.failed ? 'warning' : 'success' });
+      setOpenBulkUpload(false); setSelectedFile(null); fetchDashboardData();
     } catch (error) {
       enqueueSnackbar(error.response?.data?.message || 'Error uploading file', { variant: 'error' });
     }
   };
 
   const downloadTemplate = () => {
-    // Create CSV template content
     const csvContent = `email,role,department
 john.doe@gmail.com,participant,CSE
 jane.smith@gmail.com,coordinator,ECE
 admin.head@gmail.com,hod,CSE`;
-
-    // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'bulk_upload_template.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    enqueueSnackbar('Template downloaded successfully', { variant: 'success' });
+    link.setAttribute('href', url); link.setAttribute('download', 'bulk_upload_template.csv');
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    enqueueSnackbar('Template downloaded', { variant: 'success' });
   };
 
   const handleEditUser = (user) => {
-    setEditingUser({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      department: user.department,
-      isActive: user.isActive,
-      password: ''
-    });
+    setEditingUser({ _id: user._id, name: user.name, email: user.email, role: user.role, department: user.department, isActive: user.isActive, password: '' });
     setOpenEditUser(true);
   };
 
@@ -272,897 +248,532 @@ admin.head@gmail.com,hod,CSE`;
         department: editingUser.department,
         isActive: editingUser.isActive
       };
-
-      // Only include password if it's provided
-      if (editingUser.password && editingUser.password.trim() !== '') {
-        updatePayload.password = editingUser.password;
-      }
-
-      await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL}/admin/users/${editingUser._id}`,
-        updatePayload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      enqueueSnackbar('User updated successfully', { variant: 'success' });
+      if (editingUser.password && editingUser.password.trim()) updatePayload.password = editingUser.password;
+      await axios.put(`${apiBase}/admin/users/${editingUser._id}`, updatePayload, { headers: { Authorization: `Bearer ${token}` }});
+      enqueueSnackbar('User updated', { variant: 'success' });
       setOpenEditUser(false);
-      setEditingUser({
-        _id: '',
-        name: '',
-        email: '',
-        role: '',
-        department: '',
-        isActive: true,
-        password: ''
-      });
+      setEditingUser({ _id: '', name: '', email: '', role: '', department: '', isActive: true, password: '' });
       fetchDashboardData();
     } catch (error) {
       enqueueSnackbar(error.response?.data?.message || 'Error updating user', { variant: 'error' });
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await axios.delete(
-          `${import.meta.env.VITE_API_BASE_URL}/admin/users/${userId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        
-        enqueueSnackbar('User deleted successfully', { variant: 'success' });
-        fetchDashboardData();
-      } catch (error) {
-        enqueueSnackbar(error.response?.data?.message || 'Error deleting user', { variant: 'error' });
-      }
+  // Reset password for a single user (keeps selection intact)
+  const handleResetUser = async (userId) => {
+    try {
+      await axios.put(`${apiBase}/admin/users/${String(userId)}/reset-password`, { password: 'Password123' }, { headers: { Authorization: `Bearer ${token}` } });
+      enqueueSnackbar('Password reset to Password123', { variant: 'success' });
+      // Refresh data but do NOT clear selections
+      await fetchDashboardData();
+    } catch (error) {
+      const msg = error?.response?.data?.message || 'Failed to reset password';
+      enqueueSnackbar(msg, { variant: 'error' });
     }
   };
 
-  const handleBulkDeleteUsers = async () => {
-    if (selectedUsers.length === 0) {
-      enqueueSnackbar('Please select users to delete', { variant: 'warning' });
-      return;
-    }
-
-    if (window.confirm(`Are you sure you want to delete ${selectedUsers.length} selected user(s)? This action cannot be undone.`)) {
-      try {
-        await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/admin/users/bulk-delete`,
-          { userIds: selectedUsers },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        
-        enqueueSnackbar(`${selectedUsers.length} users deleted successfully`, { variant: 'success' });
-        setSelectedUsers([]);
-        fetchDashboardData();
-      } catch (error) {
-        enqueueSnackbar(error.response?.data?.message || 'Error deleting users', { variant: 'error' });
-      }
+  // Bulk reset passwords (keeps selection intact)
+  const handleBulkResetUsers = async (ids) => {
+    const { ids: userIds } = normalizeUserIds(ids || selectedUsers);
+    if (!userIds.length) { enqueueSnackbar('No users selected', { variant: 'warning' }); return; }
+    try {
+      await axios.put(`${apiBase}/admin/users/reset-password`, { userIds, password: 'Password123' }, { headers: { Authorization: `Bearer ${token}` } });
+      enqueueSnackbar(`Passwords reset for ${userIds.length} user(s)`, { variant: 'success' });
+      // Refresh data, keep selection array as-is (no uncheck)
+      await fetchDashboardData();
+    } catch (error) {
+      const msg = error?.response?.data?.message || 'Failed to reset passwords';
+      enqueueSnackbar(msg, { variant: 'error' });
     }
   };
 
-  const handleRolePasswordReset = async () => {
-    if (!passwordResetRole) {
-      enqueueSnackbar('Please select a role', { variant: 'warning' });
-      return;
-    }
-
-    const roleNames = {
-      'participant': 'participants',
-      'coordinator': 'coordinators',
-      'hod': 'HODs'
-    };
-
-    const resetTypeText = passwordResetType === 'email' 
-      ? 'their email address' 
-      : 'default password (password123)';
-
-    if (window.confirm(
-      `Are you sure you want to reset passwords for all ${roleNames[passwordResetRole]} to ${resetTypeText}? This action cannot be undone.`
-    )) {
-      setRolePasswordResetLoading(true);
-      try {
-        const response = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/admin/users/reset-password-by-role`,
-          { 
-            role: passwordResetRole,
-            resetType: passwordResetType
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        
-        const { summary, updatedUsers, errors } = response.data;
-        
-        let message = `Password reset completed for ${summary.successfulResets} ${roleNames[passwordResetRole]}`;
-        if (errors.length > 0) {
-          message += `. ${errors.length} failed.`;
-        }
-        
-        enqueueSnackbar(message, { variant: 'success' });
-        
-        // Show detailed results in console for admin reference
-        console.log('Password Reset Results:', {
-          summary,
-          updatedUsers,
-          errors
-        });
-        
-        setOpenRolePasswordReset(false);
-        setPasswordResetRole('');
-        setPasswordResetType('email');
-        fetchDashboardData();
-      } catch (error) {
-        enqueueSnackbar(error.response?.data?.message || 'Error resetting passwords', { variant: 'error' });
-      } finally {
-        setRolePasswordResetLoading(false);
-      }
-    }
+  // Open confirm dialog for single user
+  const confirmDeleteUser = (userId, displayName = '') => {
+    const { ids } = normalizeUserIds(userId);
+    setConfirmPayload({
+      kind: 'single',
+      userIds: ids,
+      title: 'Delete user',
+      message: `Delete ${displayName || 'this user'}? This action cannot be undone.`,
+    });
+    setConfirmOpen(true);
   };
+
+  // Open confirm dialog for bulk delete
+  const confirmBulkDelete = (ids) => {
+    const { ids: normIds, skipped } = normalizeUserIds(ids);
+    if (skipped.length) {
+      console.warn('confirmBulkDelete skipped invalid items:', skipped);
+      enqueueSnackbar(`Ignored ${skipped.length} invalid selection item(s).`, { variant: 'warning' });
+    }
+    setConfirmPayload({
+      kind: 'bulk',
+      userIds: normIds,
+      title: `Delete ${normIds.length} users`,
+      message: `Are you sure you want to permanently delete ${normIds.length} user(s)? This cannot be undone.`,
+    });
+    setConfirmOpen(true);
+  };
+
+  // wrappers expected by child components
+  const handleDeleteUser = (userId, displayName) => confirmDeleteUser(userId, displayName);
+  const handleBulkDeleteUsers = (ids) => confirmBulkDelete(ids || selectedUsers);
 
   const handleSelectUser = (userId) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
+    const idStr = String((userId && userId._id) ? userId._id : userId);
+    setSelectedUsers(prev => prev.includes(idStr) ? prev.filter(id => id !== idStr) : [...prev, idStr]);
   };
 
   const handleSelectAllUsers = (checked) => {
-    if (checked) {
-      setSelectedUsers(users.map(user => user._id));
-    } else {
-      setSelectedUsers([]);
+    if (checked) setSelectedUsers(users.map(u => String(u._id)));
+    else setSelectedUsers([]);
+  };
+
+  const toggleDrawer = () => setDrawerOpen(prev => !prev);
+
+  // go to dashboard view
+  const goHome = () => setActiveTab('dashboard');
+
+  // confirm action handler (performs API call)
+  // Replace your existing handleConfirmAction with this improved version:
+  const handleConfirmAction = async () => {
+    const raw = confirmPayload?.userIds;
+    const { ids: userIds, skipped } = normalizeUserIds(raw || []);
+    if (skipped && skipped.length) {
+      console.warn('Some items were skipped when normalizing userIds:', skipped);
+      enqueueSnackbar(`Ignored ${skipped.length} invalid item(s) while preparing delete.`, { variant: 'warning' });
+    }
+    if (!userIds || userIds.length === 0) {
+      enqueueSnackbar('No valid user ids to delete.', { variant: 'warning' });
+      setConfirmOpen(false);
+      return;
+    }
+
+    setConfirmLoading(true);
+
+    const getServerMessage = (err) => {
+      try {
+        return err?.response?.data?.message || err?.response?.data?.error || err?.message || JSON.stringify(err?.response?.data);
+      } catch {
+        return String(err);
+      }
+    };
+
+    try {
+      // Try multiple common payload shapes for bulk endpoints
+      let bulkSucceeded = false;
+      let bulkError = null;
+      if (confirmPayload.kind === 'bulk') {
+        const bulkPayloads = [ { userIds }, { ids: userIds }, { user_ids: userIds } ];
+        for (const payload of bulkPayloads) {
+          try {
+            await axios.post(`${apiBase}/admin/users/bulk-delete`, payload, { headers: { Authorization: `Bearer ${token}` } });
+            bulkSucceeded = true; break;
+          } catch (err) {
+            bulkError = err; console.warn('bulk-delete attempt failed for payload', payload, err);
+          }
+        }
+      }
+
+      if (bulkSucceeded) {
+        enqueueSnackbar(`${userIds.length} user(s) deleted successfully`, { variant: 'success' });
+        setSelectedUsers(prev => prev.filter(id => !userIds.includes(String(id))));
+        await fetchDashboardData();
+        setConfirmOpen(false);
+        return;
+      }
+
+      if (confirmPayload.kind === 'bulk' && !bulkSucceeded) {
+        enqueueSnackbar('Bulk delete failed — attempting individual deletes', { variant: 'warning' });
+        if (bulkError) console.error('Bulk delete final error:', getServerMessage(bulkError), bulkError);
+      }
+
+      const results = { success: [], failed: [] };
+      for (const id of userIds) {
+        try {
+          await axios.delete(`${apiBase}/admin/users/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+          results.success.push(id);
+        } catch (err) {
+          results.failed.push({ id, message: getServerMessage(err) });
+          console.error(`Failed to delete ${id}:`, err);
+        }
+      }
+
+      if (results.success.length) {
+        enqueueSnackbar(`${results.success.length} user(s) deleted`, { variant: 'success' });
+        setSelectedUsers(prev => prev.filter(id => !results.success.includes(id)));
+      }
+      if (results.failed.length) {
+        const failedIds = results.failed.map(f => f.id).slice(0, 6).join(', ');
+        const more = results.failed.length > 6 ? ` (+${results.failed.length - 6} more)` : '';
+        enqueueSnackbar(`Failed to delete: ${failedIds}${more}`, { variant: 'error', persist: true });
+        console.error('Sequential delete failures:', results.failed);
+      }
+
+      await fetchDashboardData();
+      setConfirmOpen(false);
+    } catch (err) {
+      console.error('Unexpected error in delete flow', err);
+      enqueueSnackbar(getServerMessage(err) || 'Error performing delete', { variant: 'error' });
+    } finally {
+      setConfirmLoading(false);
     }
   };
 
-  const StatCard = ({ title, value, icon, color = 'primary', onClick, clickable = false }) => (
-    <Card 
-      sx={{ 
-        ...(clickable && {
-          cursor: 'pointer',
-          '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: 4,
-            transition: 'all 0.2s ease-in-out'
-          }
-        })
-      }}
-      onClick={onClick}
-    >
-      <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box>
-            <Typography color="textSecondary" gutterBottom variant="h6">
-              {title}
-            </Typography>
-            <Typography variant="h4" component="h2">
-              {value}
-            </Typography>
-          </Box>
-          <Avatar sx={{ bgcolor: `${color}.main` }}>
-            {icon}
-          </Avatar>
-        </Box>
-      </CardContent>
-    </Card>
-  );
 
-  const renderDashboard = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} sm={6} md={2.4}>
-        <StatCard
-          title="Total Users"
-          value={stats.totalUsers || 0}
-          icon={<People />}
-          color="primary"
-        />
-      </Grid>
-      <Grid item xs={12} sm={6} md={2.4}>
-        <StatCard
-          title="Total Events"
-          value={stats.totalEvents || 0}
-          icon={<Event />}
-          color="secondary"
-        />
-      </Grid>
-      <Grid item xs={12} sm={6} md={2.4}>
-        <StatCard
-          title="Active Events"
-          value={stats.activeEvents || 0}
-          icon={<Event />}
-          color="success"
-        />
-      </Grid>
-      <Grid item xs={12} sm={6} md={2.4}>
-        <StatCard
-          title="HODs"
-          value={stats.usersByRole?.hod || 0}
-          icon={<People />}
-          color="warning"
-        />
-      </Grid>
-      <Grid item xs={12} sm={6} md={2.4}>
-        <StatCard
-          title="Password Reset Requests"
-          value={passwordResetCount}
-          icon={<Security />}
-          color="error"
-          onClick={() => setActiveTab('password-reset')}
-          clickable={true}
-        />
-      </Grid>
-
-      {/* Recent Users */}
-      <Grid item xs={12} md={6}>
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Recent Users
-          </Typography>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Department</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {stats.recentUsers?.slice(0, 5).map((user) => (
-                  <TableRow key={user._id}>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>
-                      <Chip label={user.role} size="small" />
-                    </TableCell>
-                    <TableCell>{user.department}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-      </Grid>
-
-      {/* Recent Events */}
-      <Grid item xs={12} md={6}>
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Recent Events
-          </Typography>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Title</TableCell>
-                  <TableCell>Coordinator</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {stats.recentEvents?.slice(0, 5).map((event) => (
-                  <TableRow key={event._id}>
-                    <TableCell>{event.title}</TableCell>
-                    <TableCell>{event.coordinatorId?.name}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={event.status} 
-                        size="small" 
-                        color={event.status === 'active' ? 'success' : 'default'}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-      </Grid>
-    </Grid>
-  );
-
-  const renderUsers = () => (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5">User Management</Typography>
-        <Box>
-          {selectedUsers.length > 0 && (
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteSweep />}
-              onClick={handleBulkDeleteUsers}
-              sx={{ mr: 1 }}
-            >
-              Delete Selected ({selectedUsers.length})
-            </Button>
-          )}
-          <Button
-            variant="outlined"
-            color="warning"
-            startIcon={<VpnKey />}
-            onClick={() => setOpenRolePasswordReset(true)}
-            sx={{ mr: 1 }}
-          >
-            Reset Passwords by Role
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Upload />}
-            onClick={() => setOpenBulkUpload(true)}
-            sx={{ mr: 1 }}
-          >
-            Bulk Upload
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => setOpenAddUser(true)}
-          >
-            Add User
-          </Button>
-        </Box>
-      </Box>
-
-      <Paper sx={{ p: 2 }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    indeterminate={selectedUsers.length > 0 && selectedUsers.length < users.length}
-                    checked={users.length > 0 && selectedUsers.length === users.length}
-                    onChange={(e) => handleSelectAllUsers(e.target.checked)}
-                  />
-                </TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Department</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user._id}>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedUsers.includes(user._id)}
-                      onChange={() => handleSelectUser(user._id)}
-                    />
-                  </TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Chip label={user.role} size="small" />
-                  </TableCell>
-                  <TableCell>{user.department}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={user.isActive ? 'Active' : 'Inactive'} 
-                      size="small"
-                      color={user.isActive ? 'success' : 'default'}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton 
-                      size="small" 
-                      color="primary"
-                      onClick={() => handleEditUser(user)}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <IconButton 
-                      size="small" 
-                      color="error"
-                      onClick={() => handleDeleteUser(user._id)}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
-    </Box>
-  );
-
-  const renderEvents = () => (
-    <Box>
-      <Typography variant="h5" gutterBottom>
-        Event Management
-      </Typography>
-      <Paper sx={{ p: 2 }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Title</TableCell>
-                <TableCell>Coordinator</TableCell>
-                <TableCell>HOD</TableCell>
-                <TableCell>Department</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Created</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {events.map((event) => (
-                <TableRow key={event._id}>
-                  <TableCell>{event.title}</TableCell>
-                  <TableCell>{event.coordinatorId?.name}</TableCell>
-                  <TableCell>{event.hodId?.name}</TableCell>
-                  <TableCell>{event.department}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={event.status} 
-                      size="small"
-                      color={event.status === 'active' ? 'success' : 'default'}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {new Date(event.createdAt).toLocaleDateString()}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
-    </Box>
-  );
-
+  // ---------- UI Rendering ----------
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <Typography variant="h6" color="textSecondary">Loading dashboard...</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f3f7fb' }}>
       {/* App Bar */}
-      <AppBar position="static">
-        <Toolbar>
-          <Dashboard sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Admin Dashboard
-          </Typography>
-          <Button
-            color="inherit"
-            onClick={() => setActiveTab('dashboard')}
-            sx={{ mr: 1 }}
-          >
-            Dashboard
-          </Button>
-          <Button
-            color="inherit"
-            onClick={() => setActiveTab('users')}
-            sx={{ mr: 1 }}
-          >
-            Users
-          </Button>
-          <Button
-            color="inherit"
-            onClick={() => setActiveTab('events')}
-            sx={{ mr: 1 }}
-          >
-            Events
-          </Button>
-          <Button
-            color="inherit"
-            onClick={() => setActiveTab('password-reset')}
-            sx={{ mr: 2 }}
-            startIcon={<Security />}
-          >
-            Password Reset
-          </Button>
-          <IconButton
-            color="inherit"
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-          >
-            <Avatar sx={{ width: 32, height: 32 }}>
-              {adminName.charAt(0)}
-            </Avatar>
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-          >
-            <MenuItem onClick={handleLogout}>
-              <ExitToApp sx={{ mr: 1 }} />
-              Logout
-            </MenuItem>
-          </Menu>
+      <AppBar position="fixed" elevation={3} sx={{
+        bgcolor: '#ffffff',
+        color: '#0f1724',
+        zIndex: theme.zIndex.drawer + 2,
+        borderBottom: '1px solid rgba(15,23,42,0.06)'
+      }}>
+        <Toolbar sx={{ minHeight: 72, px: { xs: 2, sm: 3 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                overflow: 'hidden',
+                boxShadow: '0 6px 18px rgba(15,23,42,0.06)',
+                border: '1px solid rgba(15,23,42,0.04)',
+              }}
+            >
+              <img src="/event_logo.png" alt="Event logo" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </Box>
+          </Box>
+
+          <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'left' }}>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                onClick={goHome}
+                startIcon={<HomeIcon />}
+                sx={{
+                  background: 'linear-gradient(90deg, rgba(233,196,106,0.14), rgba(233,196,106,0.06))',
+                  color: '#39707a',
+                  px: 3,
+                  py: 1,
+                  borderRadius: 999,
+                  textTransform: 'none',
+                  fontWeight: 800,
+                  boxShadow: '0 10px 28px rgba(15,23,42,0.06)',
+                  border: '1px solid rgba(15,23,42,0.04)'
+                }}
+              >
+                Dashboard
+              </Button>
+            </motion.div>
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Button variant="outlined" onClick={() => setOpenAddUser(true)} startIcon={<AddIcon />} sx={{ color: '#0f1724', borderColor: 'rgba(15,23,42,0.06)' }}>
+              Add User
+            </Button>
+
+            <Button variant="text" onClick={() => setOpenBulkUpload(true)} startIcon={<CloudUploadIcon />} sx={{ color: '#0f1724' }}>
+              Bulk Upload
+            </Button>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+              <Typography variant="body2" sx={{ mr: 1 }}>{adminName}</Typography>
+              <Avatar sx={{ width: 36, height: 36, bgcolor: '#e9c46a', color: '#3b2c1a' }}>{adminName.charAt(0)}</Avatar>
+              <Button
+                onClick={handleLogout}
+                variant="contained"
+                sx={{ ml: 1, bgcolor: '#0f1724', color: '#fff', borderRadius: 2 }}
+              >
+                Logout
+              </Button>
+              <IconButton color="inherit" onClick={toggleDrawer} sx={{ ml: 1 }}>
+                {drawerOpen ? <ChevronLeftIcon /> : <MenuIcon />}
+              </IconButton>
+            </Box>
+          </Box>
         </Toolbar>
       </AppBar>
 
-      {/* Main Content */}
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        {activeTab === 'dashboard' && renderDashboard()}
-        {activeTab === 'users' && renderUsers()}
-        {activeTab === 'events' && renderEvents()}
-        {activeTab === 'password-reset' && <PasswordResetRequestsAdmin />}
-      </Container>
+      {/* Drawer */}
+      <Drawer
+        variant="persistent"
+        open={drawerOpen}
+        sx={{
+          width: drawerOpen ? 220 : 72,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerOpen ? 220 : 72,
+            mt: '72px',
+            boxSizing: 'border-box',
+            borderRight: 'none',
+            background: '#ffffff',
+            color: '#0f1724',
+            boxShadow: '0 8px 30px rgba(15,23,42,0.04)'
+          }
+        }}
+      >
+        <Box sx={{ p: 2, pb: 1 }}>
+          <Divider sx={{ borderColor: 'rgba(15,23,42,0.04)', mb: 1 }} />
+          <List>
+            {NAV_ITEMS.map((item) => (
+              <ListItemButton
+                key={item.key}
+                selected={activeTab === item.key}
+                onClick={() => setActiveTab(item.key)}
+                sx={{
+                  borderRadius: 1,
+                  mb: 0.5,
+                  px: drawerOpen ? 2 : 1,
+                  justifyContent: drawerOpen ? 'flex-start' : 'center',
+                  background: activeTab === item.key ? 'rgba(233,196,106,0.08)' : 'transparent'
+                }}
+              >
+                <ListItemIcon sx={{ color: activeTab === item.key ? '#b07f2a' : 'rgba(15,23,42,0.7)', minWidth: 36 }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText primary={drawerOpen ? item.label : item.label.charAt(0)} sx={{ opacity: drawerOpen ? 1 : 0 }} />
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
 
-      {/* Add User Dialog */}
-      <Dialog open={openAddUser} onClose={() => setOpenAddUser(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add New User</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            value={newUser.email}
-            onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-            margin="normal"
-            helperText="Enter a valid email address"
-          />
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Role</InputLabel>
-            <Select
-              value={newUser.role}
-              onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-            >
-              <MenuItem value="participant">Participant</MenuItem>
-              <MenuItem value="coordinator">Coordinator</MenuItem>
-              <MenuItem value="hod">HOD</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            fullWidth
-            label="Department"
-            value={newUser.department}
-            onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
-            margin="normal"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenAddUser(false)}>Cancel</Button>
-          <Button onClick={handleAddUser} variant="contained">Add User</Button>
-        </DialogActions>
-      </Dialog>
+        <Box sx={{ flexGrow: 1 }} />
 
-      {/* Edit User Dialog */}
-      <Dialog open={openEditUser} onClose={() => setOpenEditUser(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit User</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            label="Name"
-            value={editingUser.name}
-            onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            value={editingUser.email}
-            onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-            margin="normal"
-            helperText="Enter a valid email address"
-          />
-          <TextField
-            fullWidth
-            label="New Password"
-            type="password"
-            value={editingUser.password}
-            onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
-            margin="normal"
-            helperText="Leave blank to keep current password"
-          />
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Role</InputLabel>
-            <Select
-              value={editingUser.role}
-              onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-            >
-              <MenuItem value="participant">Participant</MenuItem>
-              <MenuItem value="coordinator">Coordinator</MenuItem>
-              <MenuItem value="hod">HOD</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            fullWidth
-            label="Department"
-            value={editingUser.department}
-            onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
-            margin="normal"
-          />
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={editingUser.isActive}
-              onChange={(e) => setEditingUser({ ...editingUser, isActive: e.target.value })}
-            >
-              <MenuItem value={true}>Active</MenuItem>
-              <MenuItem value={false}>Inactive</MenuItem>
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditUser(false)}>Cancel</Button>
-          <Button onClick={handleUpdateUser} variant="contained">Update User</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Bulk Upload Dialog */}
-      <Dialog open={openBulkUpload} onClose={() => setOpenBulkUpload(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
-            Bulk Upload Users
-            <Button
-              variant="outlined"
-              startIcon={<Download />}
-              onClick={downloadTemplate}
-              size="small"
-            >
-              Download Template
-            </Button>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Instructions for Bulk Upload:
-            </Typography>
-            <Typography variant="body2" component="div">
-              1. Download the template file using the button above<br/>
-              2. Fill in the template with user data (do not modify column headers)<br/>
-              3. Save the file and upload it below<br/>
-              4. Supported formats: CSV (.csv), Excel (.xlsx, .xls)
-            </Typography>
-          </Alert>
-
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Important Notes:
-            </Typography>
-            <Typography variant="body2" component="div">
-              • Only email addresses are allowed<br/>
-              • Valid roles: participant, coordinator, hod<br/>
-              • If uploading a new HOD, the existing HOD will be deactivated<br/>
-              • Duplicate emails will be skipped<br/>
-              • Names will be auto-generated from email addresses
-            </Typography>
-          </Alert>
-
-          <Box sx={{ mt: 2, mb: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Required Columns:
-            </Typography>
-            <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-              <Typography variant="body2" component="div" sx={{ fontFamily: 'monospace' }}>
-                <strong>email</strong> - Email address (e.g., john.doe@domain.com)<br/>
-                <strong>role</strong> - User role (participant/coordinator/hod)<br/>
-                <strong>department</strong> - Department name (e.g., CSE, ECE, MECH)
-              </Typography>
-            </Paper>
-          </Box>
-
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Select File to Upload:
-            </Typography>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={(e) => setSelectedFile(e.target.files[0])}
-              style={{ 
-                marginTop: 8,
-                padding: '8px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                width: '100%'
-              }}
-            />
-            {selectedFile && (
-              <Typography variant="body2" color="success.main" sx={{ mt: 1 }}>
-                Selected: {selectedFile.name}
-              </Typography>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setOpenBulkUpload(false);
-            setSelectedFile(null);
-          }}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleBulkUpload} 
-            variant="contained"
-            disabled={!selectedFile}
-          >
-            Upload Users
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Upload Results Dialog */}
-      <Dialog open={showResults} onClose={() => setShowResults(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>Bulk Upload Results</DialogTitle>
-        <DialogContent>
-          {uploadResults && (
-            <Box>
-              {/* Summary */}
-              <Alert severity={uploadResults.summary.failed > 0 ? 'warning' : 'success'} sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Upload Summary:
-                </Typography>
-                <Typography variant="body2">
-                  Total Processed: {uploadResults.summary.total}<br/>
-                  Successfully Added: {uploadResults.summary.successful}<br/>
-                  Failed: {uploadResults.summary.failed}<br/>
-                  Warnings: {uploadResults.summary.warnings}
-                </Typography>
-              </Alert>
-
-              {/* Warnings */}
-              {uploadResults.results.warnings?.length > 0 && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Warnings:
-                  </Typography>
-                  {uploadResults.results.warnings.map((warning, index) => (
-                    <Typography key={index} variant="body2">
-                      • {warning.message}
-                    </Typography>
-                  ))}
-                </Alert>
-              )}
-
-              {/* Successful Additions */}
-              {uploadResults.results.success?.length > 0 && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="h6" gutterBottom color="success.main">
-                    Successfully Added Users ({uploadResults.results.success.length})
-                  </Typography>
-                  <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Row</TableCell>
-                          <TableCell>Name</TableCell>
-                          <TableCell>Email</TableCell>
-                          <TableCell>Role</TableCell>
-                          <TableCell>Department</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {uploadResults.results.success.map((user, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{user.row}</TableCell>
-                            <TableCell>{user.name}</TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>
-                              <Chip label={user.role} size="small" color="success" />
-                            </TableCell>
-                            <TableCell>{user.department}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Box>
-              )}
-
-              {/* Errors */}
-              {uploadResults.results.errors?.length > 0 && (
-                <Box>
-                  <Typography variant="h6" gutterBottom color="error.main">
-                    Failed to Add Users ({uploadResults.results.errors.length})
-                  </Typography>
-                  <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Row</TableCell>
-                          <TableCell>Email</TableCell>
-                          <TableCell>Error</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {uploadResults.results.errors.map((error, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{error.row}</TableCell>
-                            <TableCell>{error.email}</TableCell>
-                            <TableCell>
-                              <Typography variant="body2" color="error">
-                                {error.error}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Box>
-              )}
-            </Box>
+        <Box sx={{ p: 2, display: 'flex', gap: 1, alignItems: 'center', justifyContent: drawerOpen ? 'space-between' : 'center' }}>
+          {drawerOpen ? (
+            <>
+              <Typography variant="caption" sx={{ opacity: 0.6 }}>Logged in as</Typography>
+              <Chip label={adminName} size="small" sx={{ bgcolor: 'rgba(15,23,42,0.04)', color: '#0f1724' }} />
+            </>
+          ) : (
+            <Tooltip title={adminName}><Avatar sx={{ width: 36, height: 36, bgcolor: '#e9c46a', color: '#3b2c1a' }}>{adminName.charAt(0)}</Avatar></Tooltip>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowResults(false)} variant="contained">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+        </Box>
+      </Drawer>
 
-      {/* Role-wise Password Reset Dialog */}
-      <Dialog open={openRolePasswordReset} onClose={() => setOpenRolePasswordReset(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Reset Passwords by Role</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              This will reset passwords for all users with the selected role.
-            </Typography>
-            
-            <FormControl fullWidth sx={{ mb: 2, mt: 2 }}>
-              <InputLabel>Select Role</InputLabel>
-              <Select
-                value={passwordResetRole}
-                onChange={(e) => setPasswordResetRole(e.target.value)}
-                label="Select Role"
-              >
-                <MenuItem value="participant">Participants</MenuItem>
-                <MenuItem value="coordinator">Coordinators</MenuItem>
-                <MenuItem value="hod">HODs</MenuItem>
-              </Select>
-            </FormControl>
+      {/* Main content */}
+      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, sm: 3, md: 4 }, mt: '72px' }}>
+        <Container maxWidth="xl" sx={{ px: 0 }}>
+          {activeTab === 'dashboard' && (
+            <Grid container spacing={3} alignItems="stretch" sx={{ mb: 2 }}>
+              <Grid item xs={12} md={8}>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    display: 'flex',
+                    gap: 2,
+                    alignItems: 'stretch',
+                    justifyContent: 'space-between',
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.85), rgba(250,250,252,0.85))',
+                    border: '1px solid rgba(15,23,42,0.04)',
+                    boxShadow: '0 8px 30px rgba(15,23,42,0.04)'
+                  }}
+                >
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={4}>
+                      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}>
+                        <GlassStat>
+                          <StatCard title="Events" value={stats.totalEvents ?? 0} subtitle="Total created" />
+                        </GlassStat>
+                      </motion.div>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+                        <GlassStat>
+                          <StatCard title="Users" value={stats.totalUsers ?? users.length} subtitle="Registered" />
+                        </GlassStat>
+                      </motion.div>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
+                        <GlassStat>
+                          <StatCard title="Active" value={stats.activeEvents ?? 0} subtitle="Ongoing / Upcoming" />
+                        </GlassStat>
+                      </motion.div>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Grid>
 
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Reset Password To</InputLabel>
-              <Select
-                value={passwordResetType}
-                onChange={(e) => setPasswordResetType(e.target.value)}
-                label="Reset Password To"
-              >
-                <MenuItem value="email">User's Email Address</MenuItem>
-                <MenuItem value="default">Default Password (password123)</MenuItem>
-              </Select>
-            </FormControl>
+              <Grid item xs={12} md={4}>
+                <Paper elevation={0} sx={{ p: 2, borderRadius: 2, background: '#ffffff', border: '1px solid rgba(15,23,42,0.04)' }}>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>Quick Actions</Typography>
+                      <Typography variant="caption" sx={{ opacity: 0.7 }}>Add / Upload / Refresh</Typography>
+                    </Box>
 
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              <Typography variant="body2">
-                <strong>Warning:</strong> This action cannot be undone. All users with the selected role will have their passwords reset.
-                {passwordResetType === 'email' ? ' Their new password will be their email address.' : ' Their new password will be "password123".'}
-              </Typography>
-            </Alert>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Tooltip title="Add new user">
+                        <Button size="small" startIcon={<AddIcon />} onClick={() => setOpenAddUser(true)} sx={{ textTransform: 'none' }}>Add</Button>
+                      </Tooltip>
+                      <Tooltip title="Bulk upload users">
+                        <Button size="small" startIcon={<CloudUploadIcon />} onClick={() => setOpenBulkUpload(true)} sx={{ textTransform: 'none' }}>Upload</Button>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+
+                  <Divider sx={{ my: 1.5, borderColor: 'rgba(15,23,42,0.04)' }} />
+                </Paper>
+              </Grid>
+            </Grid>
+          )}
+
+          <Box sx={{ mt: 2 }}>
+            <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}>
+              {activeTab === 'dashboard' && (
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 2 }}>Overview</Typography>
+                </Box>
+              )}
+              {activeTab === 'users' && (
+                <UsersView
+                  users={users}
+                  selectedUsers={selectedUsers}
+                  onSelectUser={handleSelectUser}
+                  onSelectAll={handleSelectAllUsers}
+                  onEditUser={handleEditUser}
+                  onDeleteUser={handleDeleteUser}
+                  onBulkDelete={handleBulkDeleteUsers}
+                  onOpenAddUser={() => setOpenAddUser(true)}
+                  onOpenBulkUpload={() => setOpenBulkUpload(true)}
+                  onResetUser={handleResetUser}
+                  onBulkReset={handleBulkResetUsers}
+                />
+              )}
+              {activeTab === 'events' && <EventsView events={events} />}
+              {activeTab === 'event-history' && (
+                <EventsHistoryView
+                  apiBaseProp={apiBase}
+                  token={token}
+                  enqueueSnackbar={enqueueSnackbar}
+                />
+              )}
+              {activeTab === 'mail-settings' && <MailSettingsView
+                mailForm={mailForm}
+                setMailForm={setMailForm}
+                mailSettings={mailSettings}
+                mailLoading={mailLoading}
+                // NOTE: MailSettingsView calls onSave(local) with the form, so accept it
+                onSave={async (local) => {
+                  if (!local?.fromEmail || !local?.appPassword) {
+                    enqueueSnackbar('Email and app password are required', { variant: 'warning' });
+                    return;
+                  }
+                  try {
+                    setMailLoading(true);
+                    const res = await axios.post(`${apiBase}/auth/admin/mail-settings`, local, { headers: { Authorization: `Bearer ${token}` }});
+                    enqueueSnackbar(res.data.message || 'Mail settings saved', { variant: 'success' });
+                    fetchMailSettings();
+                  } catch (err) {
+                    enqueueSnackbar(err.response?.data?.message || 'Unable to save mail settings', { variant: 'error' });
+                  } finally {
+                    setMailLoading(false);
+                  }
+                }}
+                onRefresh={fetchMailSettings}
+              />}
+            </motion.div>
           </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenRolePasswordReset(false)}>Cancel</Button>
-          <Button 
-            onClick={handleRolePasswordReset} 
-            variant="contained" 
-            color="warning"
-            disabled={!passwordResetRole || rolePasswordResetLoading}
-            startIcon={rolePasswordResetLoading ? <CircularProgress size={20} /> : <VpnKey />}
-          >
-            {rolePasswordResetLoading ? 'Resetting...' : 'Reset Passwords'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        </Container>
 
-      {/* Refresh FAB */}
-      <Tooltip title="Refresh Data">
-        <Fab
-          color="primary"
-          aria-label="refresh"
-          sx={{ position: 'fixed', bottom: 16, right: 16 }}
-          onClick={fetchDashboardData}
+        {/* Dialogs */}
+        <AddUserDialog open={openAddUser} onClose={() => setOpenAddUser(false)} newUser={newUser} setNewUser={setNewUser} onAdd={handleAddUser} />
+        <EditUserDialog open={openEditUser} onClose={() => setOpenEditUser(false)} editingUser={editingUser} setEditingUser={setEditingUser} onUpdate={handleUpdateUser} />
+        <BulkUploadDialog open={openBulkUpload} onClose={() => setOpenBulkUpload(false)} selectedFile={selectedFile} setSelectedFile={setSelectedFile} onUpload={handleBulkUpload} onDownloadTemplate={downloadTemplate} />
+        <UploadResultsDialog open={showResults} onClose={() => setShowResults(false)} uploadResults={uploadResults} />
+
+        {/* Confirmation Dialog */}
+        <Dialog
+          open={confirmOpen}
+          onClose={() => { if (!confirmLoading) setConfirmOpen(false); }}
+          aria-labelledby="confirm-dialog-title"
+          aria-describedby="confirm-dialog-description"
+          maxWidth="xs"
+          fullWidth
         >
-          <Refresh />
-        </Fab>
-      </Tooltip>
+          <DialogTitle id="confirm-dialog-title" sx={{ color: 'error.main' }}>
+            {confirmPayload.title}
+          </DialogTitle>
+
+          <DialogContent dividers>
+            <DialogContentText id="confirm-dialog-description" sx={{ mb: 1 }}>
+              {confirmPayload.message}
+            </DialogContentText>
+
+            {confirmPayload.userIds?.length > 0 && (
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                {confirmPayload.userIds.slice(0, 6).map((id) => (
+                  <Chip key={id} label={id} size="small" />
+                ))}
+                {confirmPayload.userIds.length > 6 && <Typography variant="caption">+{confirmPayload.userIds.length - 6} more</Typography>}
+              </Box>
+            )}
+          </DialogContent>
+
+          <DialogActions sx={{ px: 2, py: 1 }}>
+            <Button
+              onClick={() => setConfirmOpen(false)}
+              disabled={confirmLoading}
+              color="inherit"
+            >
+              Cancel
+            </Button>
+
+            <Button
+              onClick={handleConfirmAction}
+              variant="contained"
+              color="error"
+              disabled={confirmLoading}
+              startIcon={confirmLoading ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+            >
+              {confirmLoading ? 'Deleting...' : (confirmPayload.kind === 'bulk' ? 'Delete users' : 'Delete user')}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Floating refresh FAB */}
+        <Tooltip title="Refresh data">
+          <Fab color="primary" sx={{ position: 'fixed', bottom: 20, right: 20 }} onClick={fetchDashboardData}>
+            <Refresh />
+          </Fab>
+        </Tooltip>
+      </Box>
     </Box>
   );
 };
+
+// small helper glass wrapper for stat cards
+function GlassStat({ children }) {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2,
+        borderRadius: 2,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(255,255,255,0.85)',
+        border: '1px solid rgba(15,23,42,0.04)',
+        boxShadow: '0 8px 30px rgba(15,23,42,0.04)',
+        minHeight: 96
+      }}
+    >
+      {children}
+    </Paper>
+  );
+}
 
 export default AdminDashboard;

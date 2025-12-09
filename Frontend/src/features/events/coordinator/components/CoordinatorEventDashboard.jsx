@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
   Container,
@@ -30,10 +30,11 @@ import {
   Tooltip,
   Collapse,
   Grid,
-  useTheme,
-  alpha,
-  Fade
+  useTheme
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import Fade from "@mui/material/Fade";
+import InputAdornment from '@mui/material/InputAdornment';
 import {
   ArrowBack,
   Edit,
@@ -71,13 +72,25 @@ import { eventState } from "../../../../shared/context/eventProvider";
 import ClaimManagement from "../../../../shared/components/ClaimManagement";
 import EnhancedParticipantDashboard from "../../../../shared/components/EnhancedParticipantDashboard";
 import FeedbackStatsCard from "../../../../shared/components/FeedbackStatsCard";
+import { CoordinatorEventTemplate, TemplateAnalysis } from "../../index.js";
+
+const TAB_KEYS = Object.freeze({
+  overview: 0,
+  participants: 1,
+  financials: 2,
+  documents: 3,
+  template: 4,
+  analysis: 5
+});
 
 const CoordinatorEventDashboard = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { enqueueSnackbar } = useSnackbar();
   const { user } = eventState();
   const theme = useTheme();
+  const token = localStorage.getItem("token");
   
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -87,10 +100,25 @@ const CoordinatorEventDashboard = () => {
   const [claimData, setClaimData] = useState([]);
   const [showProgressDetails, setShowProgressDetails] = useState(false);
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+
   useEffect(() => {
     fetchEventDetails();
     fetchParticipants();
   }, [eventId]);
+
+  useEffect(() => {
+    const defaultTabKey = location.state?.defaultTab;
+    if (defaultTabKey) {
+      const tabIndex = TAB_KEYS[defaultTabKey];
+      if (typeof tabIndex === 'number') {
+        setTabValue(tabIndex);
+      }
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const fetchEventDetails = async () => {
     try {
@@ -140,25 +168,39 @@ const CoordinatorEventDashboard = () => {
     });
   };
 
-  const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      try {
-        await axios.delete(`${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes/${eventId}`, {
+  const handleDelete = () => {
+    setDeleteDialogOpen(true); 
+  };
+
+  const confirmDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_API_BASE_URL || "http://10.5.12.1:4000/api"}/coordinator/programmes/${eventId}`,
+        {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        enqueueSnackbar("Event deleted successfully", { variant: "success" });
-        navigate("/coordinator/dashboard");
-      } catch (error) {
-        console.error("Error deleting event:", error);
-        enqueueSnackbar("Error deleting event", { variant: "error" });
-      }
+        }
+      );
+
+      enqueueSnackbar("Event deleted successfully", { variant: "success" });
+      navigate("/coordinator/dashboard");
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      enqueueSnackbar("Error deleting event", { variant: "error" });
+    } finally {
+      setDeleteLoading(false);
+      setDeleteDialogOpen(false);
     }
   };
 
+
   const handleClaimSubmission = async () => {
     try {
-      const totalExpenditure = claimData.reduce((sum, item) => sum + (item.actualAmount || 0), 0);
-      
+      const totalExpenditure = claimData.reduce(
+        (sum, item) => sum + (item.actualAmount || 0),
+        0
+      );
+
       const claimPayload = {
         expenses: claimData.map(item => ({
           category: item.category,
@@ -168,21 +210,23 @@ const CoordinatorEventDashboard = () => {
       };
 
       await axios.post(
-        `http://10.5.12.1:4000/api/coordinator/programmes/${eventId}/claim`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://10.5.12.1:4000/api'}/coordinator/programmes/${eventId}/claim`,
         claimPayload,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
       );
-      
+
       enqueueSnackbar("Claim submitted successfully", { variant: "success" });
       setClaimDialogOpen(false);
       fetchEventDetails();
+
     } catch (error) {
       console.error("Error submitting claim:", error);
       enqueueSnackbar("Error submitting claim", { variant: "error" });
     }
   };
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -587,6 +631,8 @@ const CoordinatorEventDashboard = () => {
           <Tab label="👥 Participants" icon={<People />} iconPosition="start" />
           <Tab label="💰 Financials" icon={<MonetizationOn />} iconPosition="start" />
           <Tab label="📄 Documents" icon={<AttachFile />} iconPosition="start" />
+          <Tab label="🧩 Template" icon={<Assignment />} iconPosition="start" />
+          <Tab label="📊 Analysis" icon={<Analytics />} iconPosition="start" />
         </Tabs>
 
         <Box sx={{ p: 4 }}>
@@ -901,6 +947,24 @@ const CoordinatorEventDashboard = () => {
               </Grid>
             </Fade>
           )}
+
+          {tabValue === 4 && (
+            <Fade in timeout={600}>
+              <Box>
+                <CoordinatorEventTemplate
+                  eventId={eventId}
+                  token={token}
+                  onCloned={fetchEventDetails}
+                />
+              </Box>
+            </Fade>
+          )}
+
+          {tabValue === 5 && (
+            <Fade in timeout={600}>
+              <TemplateAnalysis eventId={eventId} token={token} />
+            </Fade>
+          )}
         </Box>
       </Paper>
 
@@ -929,8 +993,8 @@ const CoordinatorEventDashboard = () => {
                     setClaimData(newClaimData);
                   }}
                   size="small"
-                  InputProps={{ startAdornment: "₹" }}
-                />
+                  InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+                  />
               </Box>
             </Box>
           ))}
@@ -948,7 +1012,38 @@ const CoordinatorEventDashboard = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Event?</DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this event? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            disabled={deleteLoading}
+            color="inherit"
+          >
+            Cancel
+          </Button>
+
+          <Button
+            onClick={confirmDelete}
+            color="error"
+            variant="contained"
+            disabled={deleteLoading}
+            startIcon={deleteLoading ? <CircularProgress size={16} /> : null}
+          >
+            {deleteLoading ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
+    
+
   );
 };
 

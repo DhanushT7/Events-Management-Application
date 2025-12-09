@@ -459,6 +459,42 @@ const eventSchema = mongoose.Schema(
       universityOverhead: Number, // 30% of totalIncome
     },
 
+    // Event-specific feedback template and management
+    feedbackTemplate: [
+      {
+        questionId: String,
+        questionText: String,
+        questionType: {
+          type: String,
+          enum: ["rating", "text", "radio", "checkbox", "dropdown"]
+        },
+        options: [String],
+        isRequired: { type: Boolean, default: true },
+        order: Number
+      }
+    ],
+
+    feedbackTemplateLocked: {
+      type: Boolean,
+      default: false
+    },
+
+    feedbackTemplateVersions: [
+      {
+        versionId: String,
+        template: [Object],
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        createdAt: { type: Date, default: Date.now },
+        notes: String
+      }
+    ],
+
+    feedbackTemplateClonedFrom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Event",
+      default: null
+    }
+
   },
 
   {

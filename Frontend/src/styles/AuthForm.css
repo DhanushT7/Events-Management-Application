@@ -1,73 +1,482 @@
+/* AuthForm.css — Enhanced, themeable, responsive login/register styles */
+
+/* -----------------------------------------
+   Theme variables — tweak these to recolor
+   ----------------------------------------- */
+:root{
+  --bg: #f4f6f8;
+  --card-bg: rgba(255,255,255,0.94);
+  --card-border: #e6edf6;
+  --muted: #52606d;
+  --text: #0f1724;
+  --accent: #0066cc; /* primary accent fallback */
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --glass-blur: 8px;
+  --card-shadow: 0 12px 36px rgba(10,18,40,0.06);
+  --transition-fast: 180ms;
+  --transition-smooth: 280ms;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce){
+  * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+
+/* -----------------------------------------
+   Page & container
+   ----------------------------------------- */
+* { box-sizing: border-box; }
+html,body,#root { height: 100%; }
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #f7fafc 0%, var(--bg) 100%);
+  font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* center area */
 .auth-container {
   min-height: 100vh;
-  background: #f4f6f8;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 28px 18px;
 }
 
+/* -----------------------------------------
+   Card
+   ----------------------------------------- */
 .auth-card {
   width: 100%;
-  max-width: 400px;
-  background: #fff;
-  padding: 30px 25px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  max-width: 420px;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 28px 26px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--card-border);
+  position: relative;
+  overflow: visible;
+  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
 }
 
+/* subtle lift on hover/focus within for desktop */
+.auth-card:focus-within,
+.auth-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 22px 48px rgba(10,18,40,0.10);
+}
+
+/* small corner badge (optional) */
+.auth-card .role-badge {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  background: rgba(15,23,42,0.04);
+  color: var(--muted);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  border: 1px solid rgba(15,23,42,0.03);
+}
+
+/* -----------------------------------------
+   Logo area
+   ----------------------------------------- */
+.logo-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+/* soft circular glow behind logo */
+.logo-wrapper::before{
+  content: "";
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 30%, rgba(102,119,255,0.10), transparent 30%);
+  filter: blur(8px);
+  z-index: 0;
+  top: -6px;
+}
+
+/* logo image sits above glow */
+.login-logo{
+  width: 110px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.7);
+  padding: 6px;
+  z-index: 1;
+  box-shadow: 0 6px 20px rgba(14,30,60,0.06);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* tiny caption under logo (optional) */
+.logo-caption{
+  display:block;
+  margin-top:8px;
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+  letter-spacing:0.2px;
+}
+
+/* hover micro-interaction */
+.logo-wrapper:hover .login-logo{
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 14px 30px rgba(14,30,60,0.08);
+}
+
+/* -----------------------------------------
+   Heading & copy
+   ----------------------------------------- */
 .auth-card h2 {
+  margin: 6px 0 12px;
+  font-size: 20px;
+  font-weight: 800;
   text-align: center;
-  margin-bottom: 20px;
-  font-size: 24px;
-  color: #333;
+  color: var(--text);
+  letter-spacing: 0.2px;
 }
 
-.auth-card form {
+.auth-card p.subtle {
+  margin: 0 0 14px 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* -----------------------------------------
+   Form
+   ----------------------------------------- */
+.auth-card form{
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
+  margin-top: 6px;
 }
 
-.auth-card input {
+/* label helper style if needed */
+.field-label {
+  font-size: 13px;
+  color: var(--muted);
+  display: block;
+}
+
+/* inputs */
+.auth-card input,
+.auth-card select,
+.auth-card textarea {
+  width: 100%;
   padding: 12px 14px;
   font-size: 15px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  color: var(--text);
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  border: 1px solid #e3e8ef;
+  border-radius: var(--radius-md);
   outline: none;
-  transition: 0.3s;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  box-shadow: 0 6px 14px rgba(12,18,30,0.03);
 }
 
-.auth-card input:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+/* focus states */
+.auth-card input:focus,
+.auth-card select:focus,
+.auth-card textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 8px 28px rgba(38,99,255,0.06);
+  transform: translateY(-1px);
 }
 
-.auth-card button {
-  background-color: #007bff;
-  color: white;
+/* small input helper */
+.input-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* password wrapper and show/hide */
+.password-wrapper {
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.show-pass-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--muted);
+  border-radius: 6px;
+}
+
+/* -----------------------------------------
+   Banners / messages
+   ----------------------------------------- */
+.auth-banner {
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  border: 1px solid transparent;
+}
+
+.auth-banner.success {
+  background: linear-gradient(180deg, #eef9f1, #f6fff6);
+  color: #0f5132;
+  border-color: #d6f1df;
+}
+
+.auth-banner.error{
+  background: linear-gradient(180deg, #fff6f6, #fffaf9);
+  color: #7f1d1d;
+  border-color: #ffd6d6;
+}
+
+.field-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+/* -----------------------------------------
+   Role badge (small tag above form actions)
+   ----------------------------------------- */
+.role-pill {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:12px;
+  background: rgba(15,23,42,0.04);
+  color: var(--muted);
+  border: 1px solid rgba(15,23,42,0.03);
+}
+
+/* -----------------------------------------
+   Buttons (role-based styling + icon slot)
+   ----------------------------------------- */
+.auth-role-btn {
+  width: 100%;
   padding: 12px;
   font-size: 16px;
+  font-weight: 800;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: 0.3s;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap: 10px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+  box-shadow: 0 8px 20px rgba(12,18,30,0.06);
+  color: #0b1220;
 }
 
-.auth-card button:hover {
-  background-color: #0056b3;
+/* icon slot — if using an inline emoji or svg */
+.btn-icon {
+  display:inline-grid;
+  place-items:center;
+  width:22px;
+  height:22px;
+  font-size:14px;
+  margin-right:6px;
+  filter: drop-shadow(0 2px 6px rgba(14,30,60,0.06));
 }
 
-.auth-card p {
-  text-align: center;
-  font-size: 14px;
+/* hover glow & lift */
+.auth-role-btn:hover:not([disabled]) {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 34px rgba(12,18,30,0.10);
 }
 
+/* disabled look */
+.auth-role-btn[disabled]{
+  opacity:0.7;
+  cursor:not-allowed;
+  transform:none;
+  box-shadow:none;
+}
+
+/* loader inside button */
+.btn-loader {
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  border: 3px solid rgba(255,255,255,0.5);
+  border-top-color: rgba(255,255,255,0.95);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin{ to { transform: rotate(360deg); } }
+
+/* -----------------------------------------
+   Role color tokens (soft / light palettes)
+   ----------------------------------------- */
+
+/* Admin – Royal Blue Light */
+.admin-btn {
+  background: linear-gradient(135deg, #e6ecff, #d6e3ff);
+  color: #17306b;
+  border: 1px solid rgba(109,142,255,0.18);
+}
+.admin-btn:hover { box-shadow: 0 18px 36px rgba(109,142,255,0.16); }
+
+/* HOD – Teal Light */
+.hod-btn {
+  background: linear-gradient(135deg, #e9fbfb, #d9f7f6);
+  color: #044f52;
+  border: 1px solid rgba(111,216,214,0.16);
+}
+.hod-btn:hover { box-shadow: 0 18px 36px rgba(111,216,214,0.14); }
+
+/* Coordinator – Emerald Light */
+.coordinator-btn{
+  background: linear-gradient(135deg, #f0fff4, #e1f9ea);
+  color: #0b4b31;
+  border: 1px solid rgba(126,227,171,0.12);
+}
+.coordinator-btn:hover { box-shadow: 0 18px 36px rgba(126,227,171,0.14); }
+
+/* Participant – Soft Pink */
+.participant-btn {
+  background: linear-gradient(135deg, #fff2f7, #ffe9f2);
+  color: #4a2032;
+  border: 1px solid rgba(245,152,196,0.12);
+}
+.participant-btn:hover { box-shadow: 0 18px 36px rgba(245,152,196,0.12); }
+
+/* Fallback primary if no role class */
+.auth-role-btn.default {
+  background: linear-gradient(135deg, #eff6ff, #e2ecff);
+  color: #072469;
+  border: 1px solid rgba(90,120,255,0.12);
+}
+
+/* -----------------------------------------
+   Helper card & meta lines
+   ----------------------------------------- */
+.auth-helper-card {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fbfdff, #f7fafc);
+  border: 1px solid #e9eef6;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* small text & footer */
+.meta-line {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align:center;
+}
+
+/* links */
 .auth-card a {
-  color: #007bff;
+  color: var(--accent);
   text-decoration: none;
+  font-weight: 700;
+}
+.auth-card a:hover { text-decoration: underline; }
+
+/* -----------------------------------------
+   small utilities
+   ----------------------------------------- */
+.row-between { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.checkbox-label { display:inline-flex; gap:8px; align-items:center; font-size:13px; color:var(--muted); }
+
+/* responsive tweaks */
+@media (max-width: 480px){
+  .auth-card { padding: 20px; margin: 0 10px; border-radius: 10px; }
+  .login-logo { width: 92px; }
+  .auth-card h2 { font-size: 18px; }
+  .auth-role-btn { padding: 11px; font-size: 15px; border-radius: 10px; }
 }
 
-.auth-card a:hover {
-  text-decoration: underline;
+/* print-friendly */
+@media print{
+  body { background: #fff; }
+  .auth-card { box-shadow: none; border: none; }
+}
+/* ForgotPassword extras */
+
+/* OTP input specific tweaks (we use a single numeric input) */
+.auth-card input[inputmode="numeric"],
+.auth-card input[type="tel"] {
+  letter-spacing: 3px;
+  font-weight: 600;
+  font-size: 16px;
+  text-align: center;
+}
+
+/* password strength bar */
+.password-strength {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+.strength-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(0,0,0,0.06), rgba(0,0,0,0.04));
+  box-shadow: inset 0 -4px 8px rgba(0,0,0,0.04);
+  overflow: hidden;
+  position: relative;
+}
+.strength-bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  background: linear-gradient(90deg, #ff6b6b, #ffb86b);
+  border-radius: inherit;
+  transition: width 220ms ease;
+}
+
+/* Strength levels — adjust color + width */
+.strength-bar.s-0::after { width: 6%; background: #ff6b6b; }
+.strength-bar.s-1::after { width: 28%; background: #ff9a6b; }
+.strength-bar.s-2::after { width: 48%; background: #ffd36b; }
+.strength-bar.s-3::after { width: 68%; background: #b7e778; }
+.strength-bar.s-4::after { width: 88%; background: #6fe3ab; }
+.strength-bar.s-5::after { width: 100%; background: linear-gradient(90deg,#6fe3ab,#4fd6b8); }
+
+/* smaller helpers */
+.input-note { font-size: 12px; color: #6b7280; }
+
+/* link-button smaller adjustment */
+.link-button { font-size: 13px; padding: 6px 8px; }
+
+/* role-pill small tweak */
+.role-pill { font-size: 11px; padding: 6px 8px; }
+
+/* adjust loader color contrast for light palettes */
+.btn-loader { border-top-color: rgba(255,255,255,0.95); }
+
+/* responsive tweak for OTP and buttons */
+@media (max-width: 420px) {
+  .auth-card { padding: 18px; }
+  .logo-wrapper::before { width: 96px; height: 96px; }
+  .login-logo { width: 86px; }
 }

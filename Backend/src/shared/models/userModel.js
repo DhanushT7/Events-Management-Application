@@ -134,6 +134,32 @@ const userSchema = mongoose.Schema(
         default: false
       }
     },
+
+    // OTP-based password reset metadata
+    resetOtpHash: {
+      type: String,
+      default: null
+    },
+    resetOtpExpires: {
+      type: Date,
+      default: null
+    },
+    resetOtpAttempts: {
+      type: Number,
+      default: 0
+    },
+    resetOtpSession: {
+      type: String,
+      default: null
+    },
+    resetOtpSessionExpires: {
+      type: Date,
+      default: null
+    },
+    resetOtpVerifiedAt: {
+      type: Date,
+      default: null
+    }
   },
   {
     timestamps: true,

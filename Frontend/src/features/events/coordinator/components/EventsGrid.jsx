@@ -219,6 +219,24 @@ const EventCard = ({
         >
           View Details
         </Button>
+
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => onNavigateToEvent(event._id, 'template')}
+          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+        >
+          Feedback Template
+        </Button>
+
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => onNavigateToEvent(event._id, 'analysis')}
+          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+        >
+          Feedback Analysis
+        </Button>
         
         <Tooltip title="Generate PDF">
           <IconButton

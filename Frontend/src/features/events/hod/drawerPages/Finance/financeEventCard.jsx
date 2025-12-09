@@ -1,4 +1,5 @@
 import React from "react";
+import { useSnackbar } from 'notistack';
 import {
   Card,
   CardContent,
@@ -15,6 +16,7 @@ import { ArrowUpward, ArrowDownward, AttachMoney } from "@mui/icons-material";
 import CurrencyRupeeIcon from "@mui/icons-material/CurrencyRupee";
 
 const FinancialEventCard = ({ event, activePage, setActivePage }) => {
+  const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
 
   // Calculate actual expenditure from claim bill expenses
@@ -80,7 +82,7 @@ const FinancialEventCard = ({ event, activePage, setActivePage }) => {
       })
       .catch((err) => {
         console.error("Error fetching PDF:", err.message);
-        alert("Failed to load PDF. Please try again.");
+        enqueueSnackbar("Failed to load PDF. Please try again.", { variant: 'error' });
       });
   }
 

@@ -11,6 +11,7 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
+  Checkbox,
   MenuItem,
   Chip,
   Alert,
@@ -74,67 +75,7 @@ const designationOptions = [
   'Other',
 ];
 
-const feedbackQuestions = [
-  {
-    id: 'q7',
-    question: 'How effectively do you think the organization of this training programme facilitated a conducive learning environment and promoted active participation among participants?',
-    type: 'rating',
-    required: true
-  },
-  {
-    id: 'q8',
-    question: 'How effectively did the resource persons communicate and engage with the participants to enhance their learning experience?',
-    type: 'rating',
-    required: true
-  },
-  {
-    id: 'q9',
-    question: 'How well do you think the topics covered align with the current trends and challenges, and to what extent did they contribute to your professional development?',
-    type: 'rating',
-    required: true
-  },
-  {
-    id: 'q10',
-    question: 'How effective was the presentation style in conveying the key concepts and fostering a dynamic learning environment for the participants?',
-    type: 'rating',
-    required: true
-  },
-  {
-    id: 'q11',
-    question: 'Please provide an overall assessment of the program\'s overall effectiveness',
-    type: 'rating',
-    required: true
-  },
-  {
-    id: 'q12',
-    question: 'How do you think the training programme could have been more effective? (In 2 lines)',
-    type: 'text',
-    multiline: true,
-    rows: 2,
-    required: true
-  },
-  {
-    id: 'q13',
-    question: 'How satisfied were you overall?',
-    type: 'rating',
-    required: true
-  },
-  {
-    id: 'q14',
-    question: 'Would you recommend the workshop to your colleagues or peers?',
-    type: 'radio',
-    options: ['Yes', 'No'],
-    required: true
-  },
-  {
-    id: 'q15',
-    question: 'Which topics or aspects of the sessions did you find most interesting or useful?',
-    type: 'text',
-    multiline: true,
-    rows: 3,
-    required: true
-  }
-];
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const EnhancedFeedbackPortal = ({ onDataChange }) => {
   const { enqueueSnackbar } = useSnackbar();
@@ -154,13 +95,68 @@ const EnhancedFeedbackPortal = ({ onDataChange }) => {
     contact: ''
   });
 
-  const [feedbackData, setFeedbackData] = useState({
-    q7: 0, q8: 0, q9: 0, q10: 0, q11: 0,
-    q12: '', q13: 0, q14: '', q15: ''
-  });
+  const [feedbackData, setFeedbackData] = useState({});
+  const [templateQuestions, setTemplateQuestions] = useState([]);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [templateError, setTemplateError] = useState(null);
 
   const userInfo = JSON.parse(localStorage.getItem("userInfo") || '{}');
   const participantId = userInfo._id;
+
+  const initializeResponses = (questions) => {
+    const initial = {};
+    questions.forEach((question) => {
+      if (question.questionType === 'checkbox') {
+        initial[question.questionId] = [];
+      } else if (question.questionType === 'rating') {
+        initial[question.questionId] = 0;
+      } else {
+        initial[question.questionId] = '';
+      }
+    });
+    setFeedbackData(initial);
+  };
+
+  const fetchEventTemplate = async (eventId) => {
+    try {
+      setTemplateLoading(true);
+      setTemplateError(null);
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE}/participant/events/${eventId}/feedback-template`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Unable to load feedback template');
+      }
+
+      const data = await response.json();
+      const fetchedQuestions = data.template || [];
+      setTemplateQuestions(fetchedQuestions);
+      initializeResponses(fetchedQuestions);
+    } catch (error) {
+      console.error('Error fetching template:', error);
+      setTemplateQuestions([]);
+      setTemplateError(error.message);
+      enqueueSnackbar(error.message || 'Unable to load feedback template', { variant: 'error' });
+    } finally {
+      setTemplateLoading(false);
+    }
+  };
+
+  const handleCheckboxChange = (questionId, option, checked) => {
+    setFeedbackData((prev) => {
+      const existing = Array.isArray(prev[questionId]) ? prev[questionId] : [];
+      const updated = checked
+        ? Array.from(new Set([...existing, option]))
+        : existing.filter((item) => item !== option);
+      return { ...prev, [questionId]: updated };
+    });
+  };
 
   // Fetch attended events that need feedback
   const fetchAttendedEvents = async () => {
@@ -168,7 +164,7 @@ const EnhancedFeedbackPortal = ({ onDataChange }) => {
       setLoading(true);
       const token = localStorage.getItem("token");
       
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/participant/my-events/${participantId}`, {
+      const response = await fetch(`${API_BASE}/participant/my-events/${participantId}`, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -201,6 +197,12 @@ const EnhancedFeedbackPortal = ({ onDataChange }) => {
   const handleEventSelect = (event) => {
     setSelectedEvent(event);
     setActiveStep(1);
+    setTemplateQuestions([]);
+    setTemplateError(null);
+    setFeedbackData({});
+    if (event?.eventId?._id) {
+      fetchEventTemplate(event.eventId._id);
+    }
     
     // Pre-fill personal info if available
     setPersonalInfo({
@@ -231,13 +233,23 @@ const EnhancedFeedbackPortal = ({ onDataChange }) => {
         return personalInfo.email && personalInfo.name && personalInfo.designation && 
                personalInfo.institute && personalInfo.contact;
       case 2:
-        return feedbackQuestions.every(q => {
-          if (!q.required) return true;
-          const value = feedbackData[q.id];
-          if (q.type === 'rating') return value > 0;
-          if (q.type === 'text') return value.trim().length > 0;
-          if (q.type === 'radio') return value.length > 0;
-          return true;
+        if (!templateQuestions.length) return false;
+        return templateQuestions.every((question) => {
+          if (!question.isRequired) return true;
+          const value = feedbackData[question.questionId];
+          switch (question.questionType) {
+            case 'rating':
+              return Number(value) >= (question.minRating || 1);
+            case 'text':
+              return typeof value === 'string' && value.trim().length > 0;
+            case 'radio':
+            case 'dropdown':
+              return Boolean(value && value.length);
+            case 'checkbox':
+              return Array.isArray(value) && value.length > 0;
+            default:
+              return true;
+          }
         });
       default:
         return true;
@@ -253,11 +265,15 @@ const EnhancedFeedbackPortal = ({ onDataChange }) => {
       const payload = {
         participantId,
         eventId: selectedEvent.eventId._id,
-        ...personalInfo,
-        ...feedbackData
+        email: personalInfo.email,
+        name: personalInfo.name,
+        designation: personalInfo.designation,
+        institute: personalInfo.institute,
+        contact: personalInfo.contact,
+        responses: feedbackData
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/participant/feedback`, {
+      const response = await fetch(`${API_BASE}/participant/feedback`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -296,7 +312,7 @@ const EnhancedFeedbackPortal = ({ onDataChange }) => {
     try {
       const token = localStorage.getItem("token");
       
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'}/participant/download-certificate/${generatedCertificate.id}`, {
+      const response = await fetch(`${API_BASE}/participant/download-certificate/${generatedCertificate.id}`, {
         headers: {
           "Authorization": `Bearer ${token}`
         },
@@ -326,10 +342,9 @@ const EnhancedFeedbackPortal = ({ onDataChange }) => {
     setPersonalInfo({
       email: '', name: '', designation: '', institute: '', contact: ''
     });
-    setFeedbackData({
-      q7: 0, q8: 0, q9: 0, q10: 0, q11: 0,
-      q12: '', q13: 0, q14: '', q15: ''
-    });
+    setFeedbackData({});
+    setTemplateQuestions([]);
+    setTemplateError(null);
   };
 
   if (loading) {
@@ -600,67 +615,131 @@ const EnhancedFeedbackPortal = ({ onDataChange }) => {
                         Please provide your honest feedback about the event. Your responses help us improve future events.
                       </Typography>
 
-                      {feedbackQuestions.map((question, index) => (
-                        <Accordion key={question.id} defaultExpanded={index === 0}>
-                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Box display="flex" alignItems="center" gap={2}>
-                              <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-                                {index + 1}
-                              </Avatar>
-                              <Typography variant="subtitle1">
-                                Question {index + 1}
-                                {question.required && <span style={{ color: 'red' }}> *</span>}
-                              </Typography>
-                            </Box>
-                          </AccordionSummary>
-                          <AccordionDetails>
-                            <Typography variant="body2" sx={{ mb: 2 }}>
-                              {question.question}
-                            </Typography>
+                      {templateLoading && (
+                        <Box sx={{ my: 2 }}>
+                          <LinearProgress />
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            Loading feedback questions...
+                          </Typography>
+                        </Box>
+                      )}
 
-                            {question.type === 'rating' && (
+                      {templateError && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                          {templateError}
+                        </Alert>
+                      )}
+
+                      {!templateLoading && !templateError && templateQuestions.length === 0 && (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                          Feedback questions are not available for this event yet. Please contact the coordinator.
+                        </Alert>
+                      )}
+
+                      {templateQuestions.map((question, index) => {
+                        const questionKey = question.questionId || `question-${index}`;
+                        const currentValue = feedbackData[questionKey] ?? (question.questionType === 'checkbox' ? [] : '');
+                        return (
+                          <Accordion key={questionKey} defaultExpanded={index === 0}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                               <Box display="flex" alignItems="center" gap={2}>
-                                <Rating
-                                  value={feedbackData[question.id]}
-                                  onChange={(_, value) => handleFeedbackChange(question.id, value)}
-                                  size="large"
-                                />
-                                <Typography variant="body2" color="text.secondary">
-                                  ({feedbackData[question.id]}/5)
+                                <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+                                  {index + 1}
+                                </Avatar>
+                                <Typography variant="subtitle1">
+                                  Question {index + 1}
+                                  {question.isRequired && <span style={{ color: 'red' }}> *</span>}
                                 </Typography>
                               </Box>
-                            )}
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <Typography variant="body2" sx={{ mb: 2 }}>
+                                {question.questionText}
+                              </Typography>
+                              {question.helpText && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {question.helpText}
+                                </Typography>
+                              )}
 
-                            {question.type === 'text' && (
-                              <TextField
-                                fullWidth
-                                multiline={question.multiline}
-                                rows={question.rows || 1}
-                                value={feedbackData[question.id]}
-                                onChange={(e) => handleFeedbackChange(question.id, e.target.value)}
-                                placeholder="Enter your response..."
-                              />
-                            )}
-
-                            {question.type === 'radio' && (
-                              <RadioGroup
-                                row
-                                value={feedbackData[question.id]}
-                                onChange={(e) => handleFeedbackChange(question.id, e.target.value)}
-                              >
-                                {question.options.map(option => (
-                                  <FormControlLabel
-                                    key={option}
-                                    value={option}
-                                    control={<Radio />}
-                                    label={option}
+                              {question.questionType === 'rating' && (
+                                <Box display="flex" alignItems="center" gap={2}>
+                                  <Rating
+                                    value={Number(currentValue) || 0}
+                                    onChange={(_, value) => handleFeedbackChange(questionKey, value || 0)}
+                                    size="large"
+                                    max={question.maxRating || 5}
                                   />
-                                ))}
-                              </RadioGroup>
-                            )}
-                          </AccordionDetails>
-                        </Accordion>
-                      ))}
+                                  <Typography variant="body2" color="text.secondary">
+                                    ({Number(currentValue) || 0}/{question.maxRating || 5})
+                                  </Typography>
+                                </Box>
+                              )}
+
+                              {question.questionType === 'text' && (
+                                <TextField
+                                  fullWidth
+                                  multiline={question.multiline}
+                                  rows={question.rows || 1}
+                                  value={currentValue}
+                                  onChange={(e) => handleFeedbackChange(questionKey, e.target.value)}
+                                  placeholder={question.placeholder || 'Enter your response...'}
+                                />
+                              )}
+
+                              {question.questionType === 'radio' && (
+                                <RadioGroup
+                                  row
+                                  value={currentValue}
+                                  onChange={(e) => handleFeedbackChange(questionKey, e.target.value)}
+                                >
+                                  {(question.options || []).map(option => (
+                                    <FormControlLabel
+                                      key={option}
+                                      value={option}
+                                      control={<Radio />}
+                                      label={option}
+                                    />
+                                  ))}
+                                </RadioGroup>
+                              )}
+
+                              {question.questionType === 'dropdown' && (
+                                <TextField
+                                  select
+                                  fullWidth
+                                  label="Select an option"
+                                  value={currentValue}
+                                  onChange={(e) => handleFeedbackChange(questionKey, e.target.value)}
+                                >
+                                  {(question.options || []).map(option => (
+                                    <MenuItem key={option} value={option}>
+                                      {option}
+                                    </MenuItem>
+                                  ))}
+                                </TextField>
+                              )}
+
+                              {question.questionType === 'checkbox' && (
+                                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                  {(question.options || []).map(option => (
+                                    <FormControlLabel
+                                      key={option}
+                                      control={
+                                        <Checkbox
+                                          checked={Array.isArray(currentValue) && currentValue.includes(option)}
+                                          onChange={(e) => handleCheckboxChange(questionKey, option, e.target.checked)}
+                                        />
+                                      }
+                                      label={option}
+                                    />
+                                  ))}
+                                </Box>
+                              )}
+                            </AccordionDetails>
+                          </Accordion>
+                        );
+                      })}
 
                       <Box display="flex" gap={2} mt={3}>
                         <Button onClick={() => setActiveStep(1)}>

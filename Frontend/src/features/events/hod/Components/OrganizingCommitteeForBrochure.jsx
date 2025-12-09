@@ -307,7 +307,9 @@ const OrganizingCommitteeForBrochure = () => {
             startIcon={<Preview />}
             onClick={() => {
               const content = generateBrochureCommittee();
-              alert("Brochure Committee Preview:\n\n" + content);
+              window.dispatchEvent(new CustomEvent('app:notify', {
+                detail: { message: "Brochure Committee Preview:\n\n" + content, options: { variant: 'info' } }
+              }));
             }}
           >
             Preview Brochure

@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import jsPDF from "jspdf";
 import "../../styles/CertificatePage.css";
+import { useSnackbar } from "notistack";
 
 const CertificatePage = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { enqueueSnackbar } = useSnackbar();
 
   const fetchEligibleEvents = async () => {
     try {
@@ -19,7 +21,7 @@ const CertificatePage = () => {
       });
       setEvents(res.data);
     } catch (err) {
-      alert("Failed to fetch eligible events");
+      enqueueSnackbar("Failed to fetch eligible events", { variant: "error" });
     } finally {
       setLoading(false);
     }

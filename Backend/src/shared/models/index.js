@@ -7,3 +7,5 @@ export { default as TrainingProgramme } from './TrainingProgramme.js';
 export { default as ConvenorCommittee } from './convenorCommitteeModel.js';
 export { default as FeedbackQuestion } from './feedbackQuestionModel.js';
 export { default as NoteOrder } from './noteOrderModel.js';
+export { default as PasswordResetRequest } from './passwordResetRequestModel.js';
+export { default as MailSettings } from './mailSettingsModel.js';

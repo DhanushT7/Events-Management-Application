@@ -54,105 +54,69 @@ export const getEventFeedbackStats = asyncHandler(async (req, res) => {
       ? ((certificatesGenerated / feedbackGivenCount) * 100).toFixed(2) 
       : 0;
     
-    // Define feedback questions with their text for better display
-    const feedbackQuestions = {
-      q7: {
-        text: 'How effectively do you think the organization of this training programme facilitated a conducive learning environment and promoted active participation among participants?',
-        type: 'rating'
-      },
-      q8: {
-        text: 'How effectively did the resource persons communicate and engage with the participants to enhance their learning experience?',
-        type: 'rating'
-      },
-      q9: {
-        text: 'How well do you think the topics covered align with the current trends and challenges, and to what extent did they contribute to your professional development?',
-        type: 'rating'
-      },
-      q10: {
-        text: 'How effective was the presentation style in conveying the key concepts and fostering a dynamic learning environment for the participants?',
-        type: 'rating'
-      },
-      q11: {
-        text: 'Please provide an overall assessment of the program\'s overall effectiveness',
-        type: 'rating'
-      },
-      q12: {
-        text: 'How do you think the training programme could have been more effective? (In 2 lines)',
-        type: 'text'
-      },
-      q13: {
-        text: 'How satisfied were you overall?',
-        type: 'rating'
-      },
-      q14: {
-        text: 'Would you recommend the workshop to your colleagues or peers?',
-        type: 'radio'
-      },
-      q15: {
-        text: 'Which topics or aspects of the sessions did you find most interesting or useful?',
-        type: 'text'
-      }
-    };
+    // Build question definitions from event-specific feedback template
+    const template = event.feedbackTemplate || [];
 
     // Analyze feedback responses
     const ratingAnalysis = {};
     const textResponses = {};
     
-    if (feedbacks.length > 0) {
-      Object.keys(feedbackQuestions).forEach(questionId => {
-        const question = feedbackQuestions[questionId];
-        
-        if (question.type === 'rating') {
+    if (feedbacks.length > 0 && template.length > 0) {
+      for (const q of template) {
+        const qid = q.questionId || q.order || q.questionText;
+        if (q.questionType === 'rating') {
           const ratings = feedbacks
-            .map(f => f[questionId])
-            .filter(rating => rating !== undefined && rating !== null && !isNaN(rating))
-            .map(rating => Number(rating));
-          
+            .map(f => f.responses?.[qid])
+            .filter(r => r !== undefined && r !== null && !isNaN(Number(r)))
+            .map(r => Number(r));
           if (ratings.length > 0) {
-            const sum = ratings.reduce((acc, rating) => acc + rating, 0);
+            const sum = ratings.reduce((acc, r) => acc + r, 0);
             const average = (sum / ratings.length).toFixed(2);
             const distribution = {};
-            
-            // Count distribution of ratings (1-5 scale)
-            for (let i = 1; i <= 5; i++) {
-              distribution[i] = ratings.filter(r => r === i).length;
-            }
-            
-            ratingAnalysis[questionId] = {
-              questionText: question.text,
+            for (let i = 1; i <= 5; i++) distribution[i] = ratings.filter(r => r === i).length;
+            ratingAnalysis[qid] = {
+              questionText: q.questionText,
               average: parseFloat(average),
               totalResponses: ratings.length,
               distribution
             };
           }
-        } else if (question.type === 'text') {
+        } else if (q.questionType === 'text') {
           const responses = feedbacks
-            .map(f => f[questionId])
-            .filter(response => response && response.trim().length > 0);
-          
-          textResponses[questionId] = {
-            questionText: question.text,
-            responses: responses,
+            .map(f => f.responses?.[qid])
+            .filter(response => typeof response === 'string' && response.trim().length > 0);
+          textResponses[qid] = {
+            questionText: q.questionText,
+            responses,
             count: responses.length
           };
-        } else if (question.type === 'radio') {
+        } else if (q.questionType === 'radio' || q.questionType === 'dropdown') {
           const responses = feedbacks
-            .map(f => f[questionId])
-            .filter(response => response && response.trim().length > 0);
-          
+            .map(f => f.responses?.[qid])
+            .filter(response => !!response);
           const distribution = {};
-          responses.forEach(response => {
-            distribution[response] = (distribution[response] || 0) + 1;
-          });
-          
-          ratingAnalysis[questionId] = {
-            questionText: question.text,
-            type: 'radio',
-            distribution: distribution,
+          responses.forEach(response => { distribution[response] = (distribution[response] || 0) + 1; });
+          ratingAnalysis[qid] = {
+            questionText: q.questionText,
+            type: q.questionType,
+            distribution,
+            count: responses.length
+          };
+        } else if (q.questionType === 'checkbox') {
+          const responses = feedbacks
+            .map(f => f.responses?.[qid])
+            .filter(Array.isArray)
+            .flat();
+          const distribution = {};
+          responses.forEach(response => { distribution[response] = (distribution[response] || 0) + 1; });
+          ratingAnalysis[qid] = {
+            questionText: q.questionText,
+            type: 'checkbox',
+            distribution,
             count: responses.length
           };
         }
-      });
+      }
     }
     
     // Get participants who haven't given feedback yet
@@ -251,17 +215,7 @@ export const getEventFeedbackDetails = asyncHandler(async (req, res) => {
         email: feedback.participantId.email,
         department: feedback.participantId.department
       },
-      responses: {
-        q7: feedback.q7,
-        q8: feedback.q8,
-        q9: feedback.q9,
-        q10: feedback.q10,
-        q11: feedback.q11,
-        q12: feedback.q12,
-        q13: feedback.q13,
-        q14: feedback.q14,
-        q15: feedback.q15
-      },
+      responses: feedback.responses,
       submittedAt: feedback.createdAt
     }));
     
