@@ -45,13 +45,13 @@
 
 ### 🏢 **Multi-Role System with Advanced Permissions**
 - **👨‍💼 HOD (Head of Department)**: 
-  - Create and approve events
+  - Approve or Reject events
   - Manage organizing committees
   - View department-wide analytics
   - Download claim PDFs and reports
   - Add approval comments
 - **👨‍🏫 Coordinator**: 
-  - Manage assigned events
+  - Create assigned events
   - Generate professional brochures with AI-enhanced content
   - Handle participant registrations
   - Process claims and budgets
