@@ -212,24 +212,6 @@ graph TB
     E --> S
 ```
 
-### **Module 4: Events Management (Current Implementation)**
-
-This application currently implements **Module 4** of a comprehensive 10-module system:
-
-```
-📦 Complete System Architecture
-├── 📋 Module 1: Student OD Request & Approval (Planned)
-├── 🎓 Module 2: Student Internship Management (Planned)
-├── 👨‍🏫 Module 3: Faculty OD Request & Approval (Planned)
-├── 🎉 Module 4: Events Conducted by Department (✅ IMPLEMENTED)
-├── 🏢 Module 5: Facility Booking System (Planned)
-├── 📅 Module 6: Timetable & Workload Management (Planned)
-├── 💬 Module 7: Student Course Feedback & Grievances (Planned)
-├── 📊 Module 8: Project Review System (Planned)
-├── 📝 Module 9: PG CS Examination Management (Planned)
-└── 💰 Module 10: Purchase Committee & Claims (Planned)
-```
-
 ---
 
 ## 🛠️ Technology Stack
