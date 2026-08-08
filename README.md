@@ -125,10 +125,6 @@
   - Approval workflow
   - Receipt generation
   - Status tracking
-- **💳 Payment Integration**: 
-  - Bank account management
-  - Payment details in brochures
-  - Fee collection tracking
 
 ### 📊 **Analytics & Reporting**
 - **📈 Event Statistics**: 
